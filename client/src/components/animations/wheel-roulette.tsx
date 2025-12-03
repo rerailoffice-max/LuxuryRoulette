@@ -26,12 +26,18 @@ export function WheelRoulette({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [rotation, setRotation] = useState(0);
   const animationRef = useRef<number | null>(null);
+  const rotationRef = useRef(0);
 
-  const segmentAngle = (2 * Math.PI) / entries.length;
+  // Keep rotationRef in sync with rotation state
+  useEffect(() => {
+    rotationRef.current = rotation;
+  }, [rotation]);
+
+  const segmentAngle = entries.length > 0 ? (2 * Math.PI) / entries.length : 0;
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || entries.length === 0) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -84,19 +90,35 @@ export function WheelRoulette({
   }, [entries, rotation, segmentAngle, accentColor]);
 
   useEffect(() => {
-    if (!isSpinning) return;
+    if (!isSpinning || entries.length === 0) return;
 
-    // Calculate target angle so the winner segment center aligns with the top pointer
+    // Use ref to get the current rotation value (avoiding stale closure)
+    const startRotation = rotationRef.current;
+    
+    // Normalize current rotation to [0, 2π)
+    const normalizedCurrent = ((startRotation % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    
+    // Calculate where the winner segment center needs to be
     // Pointer is at top (12 o'clock = -π/2 in canvas coordinates)
-    // Segment i center is at (i * segmentAngle + segmentAngle/2)
-    // We need: rotation + segmentCenter = -π/2 (top position)
-    // So: rotation = -π/2 - segmentCenter
+    // Segment i center is at (i * segmentAngle + segmentAngle/2) on the unrotated wheel
+    // After rotation, segment center is at: rotation + segmentCenter
+    // We need: finalRotation + segmentCenter ≡ -π/2 (mod 2π)
+    // So: finalRotation = -π/2 - segmentCenter
     const segmentCenter = winnerIndex * segmentAngle + segmentAngle / 2;
     const targetAngle = -Math.PI / 2 - segmentCenter;
     
-    // Add multiple full rotations for dramatic effect, then land on target
-    const extraRotations = Math.PI * 2 * (8 + Math.random() * 4);
-    const totalRotation = targetAngle - extraRotations; // Subtract because we spin backwards (clockwise)
+    // Normalize target to [0, 2π)
+    const normalizedTarget = ((targetAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    
+    // Calculate the minimal rotation needed
+    let delta = normalizedTarget - normalizedCurrent;
+    
+    // Ensure we always spin clockwise (negative direction in canvas) by adding full rotations
+    // Add 8-12 full rotations for dramatic effect
+    const fullRotations = (8 + Math.random() * 4) * 2 * Math.PI;
+    const totalDelta = delta - fullRotations;
+    
+    const finalRotation = startRotation + totalDelta;
     
     const startTime = Date.now();
     const duration = spinDuration * 1000;
@@ -108,13 +130,16 @@ export function WheelRoulette({
       const progress = Math.min(elapsed / duration, 1);
       const easedProgress = easeOutCubic(progress);
       
-      setRotation(totalRotation * easedProgress);
+      // Interpolate from start to end
+      const currentAngle = startRotation + totalDelta * easedProgress;
+      setRotation(currentAngle);
 
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate);
       } else {
-        // Ensure final rotation is exactly at target
-        setRotation(totalRotation);
+        // Normalize final rotation to prevent drift accumulation
+        const normalizedFinal = ((finalRotation % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+        setRotation(normalizedFinal);
         onSpinComplete();
       }
     };
@@ -126,7 +151,15 @@ export function WheelRoulette({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [isSpinning, winnerIndex, segmentAngle, spinDuration, onSpinComplete]);
+  }, [isSpinning, winnerIndex, segmentAngle, spinDuration, onSpinComplete, entries.length]);
+
+  if (entries.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 text-white/50">
+        参加者を追加してください
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex items-center justify-center">

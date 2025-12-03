@@ -7,7 +7,7 @@ import { RouletteSettingsPanel, DEFAULT_ROULETTE_SETTINGS, type RouletteSettings
 import { VisualThemeSelector, THEME_CONFIGS, type VisualTheme } from "@/components/visual-theme-selector";
 import { SoundSettingsPanel, DEFAULT_SOUND_SETTINGS, type SoundSettings } from "@/components/sound-settings";
 import { AnimationTypeSelector, type AnimationType } from "@/components/animation-type-selector";
-import { WheelRoulette, CardFlip, SlotMachine, GachaCapsule, BingoMachine } from "@/components/animations";
+import { WheelRoulette, SlotMachine, GachaCapsule, TreasureChest, Omikuji } from "@/components/animations";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Volume2, 
@@ -749,8 +749,8 @@ export default function Home() {
                 />
               )}
 
-              {animationType === "cardFlip" && (
-                <CardFlip
+              {animationType === "treasureChest" && (
+                <TreasureChest
                   entries={remainingEntries.length > 0 ? remainingEntries : allEntries}
                   isSpinning={isSpinning}
                   winnerIndex={selectedWinnerIndex}
@@ -782,8 +782,8 @@ export default function Home() {
                 />
               )}
 
-              {animationType === "bingo" && (
-                <BingoMachine
+              {animationType === "omikuji" && (
+                <Omikuji
                   entries={remainingEntries.length > 0 ? remainingEntries : allEntries}
                   isSpinning={isSpinning}
                   winnerIndex={selectedWinnerIndex}

@@ -2,13 +2,13 @@ import { Card } from "@/components/ui/card";
 import { 
   RotateCw, 
   CircleDot, 
-  Layers, 
   Grip,
   Circle,
-  Target
+  Gift,
+  ScrollText
 } from "lucide-react";
 
-export type AnimationType = "nameRoulette" | "wheel" | "cardFlip" | "slotMachine" | "gacha" | "bingo";
+export type AnimationType = "nameRoulette" | "wheel" | "slotMachine" | "gacha" | "treasureChest" | "omikuji";
 
 export interface AnimationTypeConfig {
   id: AnimationType;
@@ -31,12 +31,6 @@ export const ANIMATION_TYPES: AnimationTypeConfig[] = [
     icon: CircleDot,
   },
   {
-    id: "cardFlip",
-    name: "カードフリップ",
-    description: "カードをめくって当選者発表",
-    icon: Layers,
-  },
-  {
     id: "slotMachine",
     name: "スロットマシン",
     description: "3列リールが回転する",
@@ -49,10 +43,16 @@ export const ANIMATION_TYPES: AnimationTypeConfig[] = [
     icon: Circle,
   },
   {
-    id: "bingo",
-    name: "ビンゴ抽選機",
-    description: "球が出てくるお祭り風",
-    icon: Target,
+    id: "treasureChest",
+    name: "宝箱オープン",
+    description: "宝箱が開いて当選者発表",
+    icon: Gift,
+  },
+  {
+    id: "omikuji",
+    name: "おみくじ",
+    description: "和風おみくじ箱から棒が出る",
+    icon: ScrollText,
   },
 ];
 
