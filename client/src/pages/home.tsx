@@ -6,6 +6,8 @@ import { WinnerHistory, type WinnerRecord } from "@/components/winner-history";
 import { RouletteSettingsPanel, DEFAULT_ROULETTE_SETTINGS, type RouletteSettings } from "@/components/roulette-settings";
 import { VisualThemeSelector, THEME_CONFIGS, type VisualTheme } from "@/components/visual-theme-selector";
 import { SoundSettingsPanel, DEFAULT_SOUND_SETTINGS, type SoundSettings } from "@/components/sound-settings";
+import { AnimationTypeSelector, type AnimationType } from "@/components/animation-type-selector";
+import { WheelRoulette, CardFlip, SlotMachine, GachaCapsule, BingoMachine } from "@/components/animations";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Volume2, 
@@ -55,6 +57,8 @@ export default function Home() {
   const [rouletteSettings, setRouletteSettings] = useState<RouletteSettings>(DEFAULT_ROULETTE_SETTINGS);
   const [visualTheme, setVisualTheme] = useState<VisualTheme>("default");
   const [soundSettings, setSoundSettings] = useState<SoundSettings>(DEFAULT_SOUND_SETTINGS);
+  const [animationType, setAnimationType] = useState<AnimationType>("nameRoulette");
+  const [selectedWinnerIndex, setSelectedWinnerIndex] = useState(0);
 
   const { toast } = useToast();
   const themeConfig = useMemo(() => THEME_CONFIGS[visualTheme], [visualTheme]);
@@ -291,6 +295,29 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [themeConfig.confettiColors]);
 
+  const handleAnimationComplete = useCallback(() => {
+    const entriesToUse = remainingEntries.length > 0 ? remainingEntries : allEntries;
+    const selectedEntry = entriesToUse[selectedWinnerIndex];
+    
+    stopDrumRoll();
+    
+    if (isMountedRef.current && selectedEntry) {
+      setCurrentName(selectedEntry.name);
+      setWinner(selectedEntry.name);
+      setWinnerRecords((prev) => [...prev, {
+        name: selectedEntry.name,
+        timestamp: new Date(),
+        round: prev.length + 1
+      }]);
+      setRoundNumber((prev) => prev + 1);
+      setRemainingEntries((prev) => prev.filter((entry) => entry.id !== selectedEntry.id));
+      setAppState("winner");
+      setIsSpinning(false);
+      playFanfare();
+      fireConfetti();
+    }
+  }, [remainingEntries, allEntries, selectedWinnerIndex, stopDrumRoll, playFanfare, fireConfetti]);
+
   const startRoulette = useCallback(() => {
     if (allEntries.length < 2 || isSpinning) return;
     
@@ -306,13 +333,23 @@ export default function Home() {
       setAppState("setup");
       return;
     }
+    
+    const winnerIndex = Math.floor(Math.random() * entriesToUse.length);
+    const selectedEntry = entriesToUse[winnerIndex];
+    setSelectedWinnerIndex(winnerIndex);
+
+    // For non-nameRoulette animations, let the animation component handle the visual
+    if (animationType !== "nameRoulette") {
+      // Animation components will call handleAnimationComplete when done
+      return;
+    }
+
+    // Original name roulette logic
     let currentIndex = 0;
     let speed = rouletteSettings.spinSpeed;
     let iterations = 0;
     const baseIterations = Math.floor(rouletteSettings.spinDuration * 10);
     const totalIterations = baseIterations + Math.floor(Math.random() * 10);
-    const winnerIndex = Math.floor(Math.random() * entriesToUse.length);
-    const selectedEntry = entriesToUse[winnerIndex];
 
     // Sync initial drum roll speed
     updateDrumRollSpeed(speed);
@@ -370,7 +407,7 @@ export default function Home() {
     };
 
     spin();
-  }, [remainingEntries, allEntries, isSpinning, rouletteSettings, startDrumRoll, stopDrumRoll, playFanfare, fireConfetti, updateDrumRollSpeed]);
+  }, [remainingEntries, allEntries, isSpinning, rouletteSettings, animationType, startDrumRoll, stopDrumRoll, playFanfare, fireConfetti, updateDrumRollSpeed]);
 
   const resetToSetup = useCallback(() => {
     if (spinIntervalRef.current) {
@@ -541,6 +578,12 @@ export default function Home() {
                 onThemeChange={setVisualTheme}
               />
 
+              <AnimationTypeSelector
+                value={animationType}
+                onChange={setAnimationType}
+                accentColor={themeConfig.accentColor}
+              />
+
               <RouletteSettingsPanel
                 settings={rouletteSettings}
                 onSettingsChange={setRouletteSettings}
@@ -646,50 +689,109 @@ export default function Home() {
                 </span>
               </div>
               
-              <Card 
-                className="px-12 py-8 mb-8 bg-gray-900/95 backdrop-blur-sm border-4"
-                style={{ borderColor: themeConfig.accentColor }}
-              >
-                <div 
-                  className="text-5xl md:text-7xl lg:text-8xl font-display font-bold text-center"
-                  style={{ 
-                    color: themeConfig.accentColor,
-                    textShadow: `0 0 30px ${themeConfig.glowColor}, 2px 2px 4px rgba(0,0,0,0.5)`,
-                    minHeight: "120px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                  data-testid="text-spinning-name"
-                >
-                  {currentName}
-                </div>
-              </Card>
-
-              <div className="w-full max-w-3xl px-4">
-                <div className="text-center mb-3">
-                  <span className="text-sm font-bold text-white/80">
-                    抽選対象者（{remainingNames.length}名）
-                  </span>
-                </div>
-                <div className="flex flex-wrap justify-center gap-2 p-4 bg-gray-900/80 rounded-lg border-2" style={{ borderColor: themeConfig.accentColor }}>
-                  {remainingNames.map((name, index) => (
-                    <span 
-                      key={`${name}-${index}`}
-                      className={`px-3 py-1 rounded-full text-sm font-bold transition-all duration-200 ${
-                        name === currentName ? "scale-110 ring-2" : "opacity-70"
-                      }`}
-                      style={{
-                        backgroundColor: name === currentName ? themeConfig.accentColor : "rgba(255,255,255,0.15)",
-                        color: name === currentName ? "#1a1a2e" : "white"
+              {animationType === "nameRoulette" && (
+                <>
+                  <Card 
+                    className="px-12 py-8 mb-8 bg-gray-900/95 backdrop-blur-sm border-4"
+                    style={{ borderColor: themeConfig.accentColor }}
+                  >
+                    <div 
+                      className="text-5xl md:text-7xl lg:text-8xl font-display font-bold text-center"
+                      style={{ 
+                        color: themeConfig.accentColor,
+                        textShadow: `0 0 30px ${themeConfig.glowColor}, 2px 2px 4px rgba(0,0,0,0.5)`,
+                        minHeight: "120px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                       }}
-                      data-testid={`spinning-name-${index}`}
+                      data-testid="text-spinning-name"
                     >
-                      {name}
-                    </span>
-                  ))}
-                </div>
-              </div>
+                      {currentName}
+                    </div>
+                  </Card>
+
+                  <div className="w-full max-w-3xl px-4">
+                    <div className="text-center mb-3">
+                      <span className="text-sm font-bold text-white/80">
+                        抽選対象者（{remainingNames.length}名）
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-2 p-4 bg-gray-900/80 rounded-lg border-2" style={{ borderColor: themeConfig.accentColor }}>
+                      {remainingNames.map((name, index) => (
+                        <span 
+                          key={`${name}-${index}`}
+                          className={`px-3 py-1 rounded-full text-sm font-bold transition-all duration-200 ${
+                            name === currentName ? "scale-110 ring-2" : "opacity-70"
+                          }`}
+                          style={{
+                            backgroundColor: name === currentName ? themeConfig.accentColor : "rgba(255,255,255,0.15)",
+                            color: name === currentName ? "#1a1a2e" : "white"
+                          }}
+                          data-testid={`spinning-name-${index}`}
+                        >
+                          {name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {animationType === "wheel" && (
+                <WheelRoulette
+                  entries={remainingEntries.length > 0 ? remainingEntries : allEntries}
+                  isSpinning={isSpinning}
+                  winnerIndex={selectedWinnerIndex}
+                  onSpinComplete={handleAnimationComplete}
+                  spinDuration={rouletteSettings.spinDuration}
+                  accentColor={themeConfig.accentColor}
+                />
+              )}
+
+              {animationType === "cardFlip" && (
+                <CardFlip
+                  entries={remainingEntries.length > 0 ? remainingEntries : allEntries}
+                  isSpinning={isSpinning}
+                  winnerIndex={selectedWinnerIndex}
+                  onSpinComplete={handleAnimationComplete}
+                  spinDuration={rouletteSettings.spinDuration}
+                  accentColor={themeConfig.accentColor}
+                />
+              )}
+
+              {animationType === "slotMachine" && (
+                <SlotMachine
+                  entries={remainingEntries.length > 0 ? remainingEntries : allEntries}
+                  isSpinning={isSpinning}
+                  winnerIndex={selectedWinnerIndex}
+                  onSpinComplete={handleAnimationComplete}
+                  spinDuration={rouletteSettings.spinDuration}
+                  accentColor={themeConfig.accentColor}
+                />
+              )}
+
+              {animationType === "gacha" && (
+                <GachaCapsule
+                  entries={remainingEntries.length > 0 ? remainingEntries : allEntries}
+                  isSpinning={isSpinning}
+                  winnerIndex={selectedWinnerIndex}
+                  onSpinComplete={handleAnimationComplete}
+                  spinDuration={rouletteSettings.spinDuration}
+                  accentColor={themeConfig.accentColor}
+                />
+              )}
+
+              {animationType === "bingo" && (
+                <BingoMachine
+                  entries={remainingEntries.length > 0 ? remainingEntries : allEntries}
+                  isSpinning={isSpinning}
+                  winnerIndex={selectedWinnerIndex}
+                  onSpinComplete={handleAnimationComplete}
+                  spinDuration={rouletteSettings.spinDuration}
+                  accentColor={themeConfig.accentColor}
+                />
+              )}
             </div>
           )}
 
