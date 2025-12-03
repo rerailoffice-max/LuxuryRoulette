@@ -1,8 +1,11 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { WinnerHistory, type WinnerRecord } from "@/components/winner-history";
+import { RouletteSettingsPanel, DEFAULT_ROULETTE_SETTINGS, type RouletteSettings } from "@/components/roulette-settings";
+import { VisualThemeSelector, THEME_CONFIGS, type VisualTheme } from "@/components/visual-theme-selector";
 import { 
   Volume2, 
   VolumeX, 
@@ -28,11 +31,16 @@ export default function Home() {
   const [appState, setAppState] = useState<AppState>("setup");
   const [currentName, setCurrentName] = useState("");
   const [winner, setWinner] = useState("");
-  const [winners, setWinners] = useState<string[]>([]);
+  const [winnerRecords, setWinnerRecords] = useState<WinnerRecord[]>([]);
+  const [roundNumber, setRoundNumber] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [isInputCollapsed, setIsInputCollapsed] = useState(true);
   const [audioInitialized, setAudioInitialized] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [rouletteSettings, setRouletteSettings] = useState<RouletteSettings>(DEFAULT_ROULETTE_SETTINGS);
+  const [visualTheme, setVisualTheme] = useState<VisualTheme>("default");
+
+  const themeConfig = useMemo(() => THEME_CONFIGS[visualTheme], [visualTheme]);
   
   const drumRollRef = useRef<HTMLAudioElement | null>(null);
   const fanfareRef = useRef<HTMLAudioElement | null>(null);
@@ -80,7 +88,8 @@ export default function Home() {
       .filter((name) => name.length > 0);
     setAllNames(parsed);
     setRemainingNames(parsed);
-    setWinners([]);
+    setWinnerRecords([]);
+    setRoundNumber(1);
     return parsed;
   }, []);
 
@@ -126,18 +135,18 @@ export default function Home() {
         ...defaults,
         particleCount,
         origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
-        colors: ["#FFD700", "#FFA500", "#FF6347", "#00FF00", "#00CED1", "#FF1493"],
+        colors: themeConfig.confettiColors,
       });
       confetti({
         ...defaults,
         particleCount,
         origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
-        colors: ["#FFD700", "#FFA500", "#FF6347", "#00FF00", "#00CED1", "#FF1493"],
+        colors: themeConfig.confettiColors,
       });
     }, 250);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [themeConfig.confettiColors]);
 
   const startRoulette = useCallback(() => {
     if (remainingNames.length < 1 || isSpinning) return;
@@ -150,9 +159,10 @@ export default function Home() {
 
     const namesToUse = remainingNames.length > 1 ? remainingNames : allNames;
     let currentIndex = 0;
-    let speed = 50;
+    let speed = rouletteSettings.spinSpeed;
     let iterations = 0;
-    const totalIterations = 40 + Math.floor(Math.random() * 20);
+    const baseIterations = Math.floor(rouletteSettings.spinDuration * 10);
+    const totalIterations = baseIterations + Math.floor(Math.random() * 10);
     const winnerIndex = Math.floor(Math.random() * namesToUse.length);
     const selectedWinner = namesToUse[winnerIndex];
 
@@ -167,11 +177,13 @@ export default function Home() {
       currentIndex = (currentIndex + 1) % namesToUse.length;
       iterations++;
 
-      if (iterations >= totalIterations - 10) {
-        speed += 50;
-      }
-      if (iterations >= totalIterations - 5) {
-        speed += 100;
+      const slowdownPhase1 = totalIterations - 10;
+      const slowdownPhase2 = totalIterations - 5;
+      
+      if (iterations >= slowdownPhase1 && iterations < slowdownPhase2) {
+        speed += 30;
+      } else if (iterations >= slowdownPhase2) {
+        speed += 80;
       }
 
       if (iterations >= totalIterations) {
@@ -184,7 +196,12 @@ export default function Home() {
         if (isMountedRef.current) {
           setCurrentName(selectedWinner);
           setWinner(selectedWinner);
-          setWinners((prev) => [...prev, selectedWinner]);
+          setWinnerRecords((prev) => [...prev, {
+            name: selectedWinner,
+            timestamp: new Date(),
+            round: prev.length + 1
+          }]);
+          setRoundNumber((prev) => prev + 1);
           setRemainingNames((prev) => prev.filter((name) => name !== selectedWinner));
           setAppState("winner");
           setIsSpinning(false);
@@ -197,7 +214,7 @@ export default function Home() {
     };
 
     spin();
-  }, [remainingNames, allNames, isSpinning, initializeAudio, playSound, stopSound, fireConfetti]);
+  }, [remainingNames, allNames, isSpinning, rouletteSettings, initializeAudio, playSound, stopSound, fireConfetti]);
 
   const resetToSetup = useCallback(() => {
     if (spinIntervalRef.current) {
@@ -210,7 +227,8 @@ export default function Home() {
     setIsInputCollapsed(false);
     setIsSpinning(false);
     setRemainingNames(allNames);
-    setWinners([]);
+    setWinnerRecords([]);
+    setRoundNumber(1);
     stopSound(drumRollRef.current);
     stopSound(fanfareRef.current);
   }, [allNames, stopSound]);
@@ -228,8 +246,15 @@ export default function Home() {
     setInputText("");
     setAllNames([]);
     setRemainingNames([]);
-    setWinners([]);
+    setWinnerRecords([]);
+    setRoundNumber(1);
   }, []);
+
+  const clearWinnerHistory = useCallback(() => {
+    setWinnerRecords([]);
+    setRoundNumber(1);
+    setRemainingNames(allNames);
+  }, [allNames]);
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -267,8 +292,11 @@ export default function Home() {
       <div className="relative z-10 flex flex-col min-h-screen">
         <header className="text-center py-8 md:py-12">
           <h1 
-            className="font-display text-4xl md:text-6xl font-bold tracking-wider text-primary"
-            style={{ textShadow: "0 0 30px rgba(245, 158, 11, 0.5)" }}
+            className="font-display text-4xl md:text-6xl font-bold tracking-wider"
+            style={{ 
+              color: themeConfig.primaryColor,
+              textShadow: `0 0 30px ${themeConfig.glowColor}` 
+            }}
           >
             LUCKY DRAW
           </h1>
@@ -315,7 +343,14 @@ export default function Home() {
                   size="lg"
                   disabled={allNames.length < 2}
                   onClick={startRoulette}
-                  className="px-16 py-6 text-2xl font-display font-bold tracking-wider animate-pulse-glow disabled:animate-none disabled:opacity-50"
+                  className="px-16 py-6 text-2xl font-display font-bold tracking-wider disabled:opacity-50"
+                  style={{
+                    backgroundColor: themeConfig.primaryColor,
+                    boxShadow: allNames.length >= 2 
+                      ? `0 0 20px ${themeConfig.glowColor}, 0 0 40px ${themeConfig.glowColor}` 
+                      : undefined,
+                    animation: allNames.length >= 2 ? "pulse-glow 2s ease-in-out infinite" : undefined
+                  }}
                   data-testid="button-start"
                 >
                   <Sparkles className="w-6 h-6 mr-3" />
@@ -329,6 +364,21 @@ export default function Home() {
                   Please enter at least 2 participants to start the draw
                 </p>
               )}
+
+              <VisualThemeSelector
+                currentTheme={visualTheme}
+                onThemeChange={setVisualTheme}
+              />
+
+              <RouletteSettingsPanel
+                settings={rouletteSettings}
+                onSettingsChange={setRouletteSettings}
+              />
+
+              <WinnerHistory 
+                winners={winnerRecords} 
+                onClear={clearWinnerHistory}
+              />
             </div>
           )}
 
@@ -342,9 +392,10 @@ export default function Home() {
               </div>
               
               <div 
-                className="text-5xl md:text-7xl lg:text-8xl font-display font-bold text-primary text-center px-4 py-8"
+                className="text-5xl md:text-7xl lg:text-8xl font-display font-bold text-center px-4 py-8"
                 style={{ 
-                  textShadow: "0 0 40px rgba(245, 158, 11, 0.6), 0 0 80px rgba(245, 158, 11, 0.3)",
+                  color: themeConfig.primaryColor,
+                  textShadow: `0 0 40px ${themeConfig.glowColor}, 0 0 80px ${themeConfig.glowColor.replace('0.6', '0.3')}`,
                   minHeight: "200px",
                   display: "flex",
                   alignItems: "center",
@@ -367,24 +418,32 @@ export default function Home() {
               <div className="text-center">
                 <div className="animate-float mb-6">
                   <Trophy 
-                    className="w-20 h-20 md:w-24 md:h-24 text-primary mx-auto"
-                    style={{ filter: "drop-shadow(0 0 20px rgba(245, 158, 11, 0.6))" }}
+                    className="w-20 h-20 md:w-24 md:h-24 mx-auto"
+                    style={{ 
+                      color: themeConfig.primaryColor,
+                      filter: `drop-shadow(0 0 20px ${themeConfig.glowColor})` 
+                    }}
                   />
                 </div>
                 
                 <div className="mb-4">
                   <span 
-                    className="text-2xl md:text-3xl font-display tracking-widest text-primary/80 uppercase"
-                    style={{ textShadow: "0 0 20px rgba(245, 158, 11, 0.4)" }}
+                    className="text-2xl md:text-3xl font-display tracking-widest uppercase"
+                    style={{ 
+                      color: themeConfig.primaryColor,
+                      opacity: 0.8,
+                      textShadow: `0 0 20px ${themeConfig.glowColor.replace('0.6', '0.4')}` 
+                    }}
                   >
                     Winner
                   </span>
                 </div>
                 
                 <div 
-                  className="text-6xl md:text-8xl lg:text-9xl font-display font-bold text-primary px-4 py-4 uppercase tracking-wide"
+                  className="text-6xl md:text-8xl lg:text-9xl font-display font-bold px-4 py-4 uppercase tracking-wide"
                   style={{ 
-                    textShadow: "0 0 60px rgba(245, 158, 11, 0.8), 0 0 120px rgba(245, 158, 11, 0.4)",
+                    color: themeConfig.primaryColor,
+                    textShadow: `0 0 60px ${themeConfig.glowColor.replace('0.6', '0.8')}, 0 0 120px ${themeConfig.glowColor.replace('0.6', '0.4')}`,
                   }}
                   data-testid="text-winner-name"
                 >
@@ -411,6 +470,9 @@ export default function Home() {
                   onClick={drawAgain}
                   disabled={isSpinning}
                   className="px-8 py-4 text-lg font-display font-bold tracking-wider"
+                  style={{
+                    backgroundColor: themeConfig.primaryColor
+                  }}
                   data-testid="button-draw-again"
                 >
                   <RotateCcw className="w-5 h-5 mr-2" />
@@ -427,17 +489,21 @@ export default function Home() {
                 </Button>
               </div>
 
-              {winners.length > 1 && (
+              {winnerRecords.length > 1 && (
                 <div className="mt-8 text-center">
                   <p className="text-sm text-muted-foreground mb-2">Previous winners:</p>
                   <div className="flex flex-wrap justify-center gap-2">
-                    {winners.slice(0, -1).map((w, i) => (
+                    {winnerRecords.slice(0, -1).map((record, i) => (
                       <span 
-                        key={`${w}-${i}`}
-                        className="px-3 py-1 bg-primary/20 text-primary rounded-full text-sm font-medium"
+                        key={`${record.name}-${record.round}`}
+                        className="px-3 py-1 rounded-full text-sm font-medium"
+                        style={{
+                          backgroundColor: `${themeConfig.primaryColor}33`,
+                          color: themeConfig.primaryColor
+                        }}
                         data-testid={`text-previous-winner-${i}`}
                       >
-                        {w}
+                        {record.name}
                       </span>
                     ))}
                   </div>
