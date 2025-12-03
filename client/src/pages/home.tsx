@@ -101,17 +101,25 @@ export default function Home() {
       drumRoll.preload = "auto";
       fanfare.preload = "auto";
 
-      await Promise.all([
-        new Promise<void>((resolve, reject) => {
-          drumRoll.addEventListener("canplaythrough", () => resolve(), { once: true });
-          drumRoll.addEventListener("error", () => reject(new Error("ドラムロール音声の読み込みに失敗しました")), { once: true });
-          drumRoll.load();
-        }),
-        new Promise<void>((resolve, reject) => {
-          fanfare.addEventListener("canplaythrough", () => resolve(), { once: true });
-          fanfare.addEventListener("error", () => reject(new Error("ファンファーレ音声の読み込みに失敗しました")), { once: true });
-          fanfare.load();
-        })
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise<void>((_, reject) => {
+        setTimeout(() => reject(new Error("Audio load timeout")), 5000);
+      });
+
+      await Promise.race([
+        Promise.all([
+          new Promise<void>((resolve, reject) => {
+            drumRoll.addEventListener("canplaythrough", () => resolve(), { once: true });
+            drumRoll.addEventListener("error", () => reject(new Error("ドラムロール音声の読み込みに失敗しました")), { once: true });
+            drumRoll.load();
+          }),
+          new Promise<void>((resolve, reject) => {
+            fanfare.addEventListener("canplaythrough", () => resolve(), { once: true });
+            fanfare.addEventListener("error", () => reject(new Error("ファンファーレ音声の読み込みに失敗しました")), { once: true });
+            fanfare.load();
+          })
+        ]),
+        timeoutPromise
       ]);
 
       drumRollRef.current = drumRoll;
@@ -120,6 +128,7 @@ export default function Home() {
       setAudioReady(true);
     } catch (e) {
       console.warn("Audio initialization failed:", e);
+      setAudioInitialized(true); // Mark as initialized even on failure to prevent retrying
       setAudioReady(false);
       toast({
         title: "音声の読み込みに失敗しました",
@@ -291,11 +300,14 @@ export default function Home() {
     stopSound(fanfareRef.current);
   }, [stopSound]);
 
-  const goToPreview = useCallback(async () => {
+  const goToPreview = useCallback(() => {
     if (allNames.length < 2) return;
     
+    // Initialize audio in background without blocking
     if (!audioInitialized) {
-      await initializeAudio();
+      initializeAudio().catch(() => {
+        // Audio init failure is handled in initializeAudio
+      });
     }
     
     setAppState("preview");
