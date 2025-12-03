@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { 
   Volume2, 
   VolumeX, 
@@ -10,7 +11,8 @@ import {
   ChevronDown, 
   ChevronUp,
   Trophy,
-  Sparkles
+  Sparkles,
+  UserMinus
 } from "lucide-react";
 import confetti from "canvas-confetti";
 
@@ -20,27 +22,54 @@ const DRUM_ROLL_URL = "https://www.soundjay.com/misc/sounds/drum-roll-01.mp3";
 const FANFARE_URL = "https://www.soundjay.com/misc/sounds/fanfare-1.mp3";
 
 export default function Home() {
-  const [names, setNames] = useState<string[]>([]);
+  const [allNames, setAllNames] = useState<string[]>([]);
+  const [remainingNames, setRemainingNames] = useState<string[]>([]);
   const [inputText, setInputText] = useState("");
   const [appState, setAppState] = useState<AppState>("setup");
   const [currentName, setCurrentName] = useState("");
   const [winner, setWinner] = useState("");
+  const [winners, setWinners] = useState<string[]>([]);
   const [isMuted, setIsMuted] = useState(false);
-  const [isInputCollapsed, setIsInputCollapsed] = useState(false);
+  const [isInputCollapsed, setIsInputCollapsed] = useState(true);
   const [audioInitialized, setAudioInitialized] = useState(false);
+  const [isSpinning, setIsSpinning] = useState(false);
   
   const drumRollRef = useRef<HTMLAudioElement | null>(null);
   const fanfareRef = useRef<HTMLAudioElement | null>(null);
-  const spinIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const spinIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (spinIntervalRef.current) {
+        clearTimeout(spinIntervalRef.current);
+        spinIntervalRef.current = null;
+      }
+      if (drumRollRef.current) {
+        drumRollRef.current.pause();
+        drumRollRef.current.currentTime = 0;
+      }
+      if (fanfareRef.current) {
+        fanfareRef.current.pause();
+        fanfareRef.current.currentTime = 0;
+      }
+    };
+  }, []);
 
   const initializeAudio = useCallback(() => {
     if (!audioInitialized) {
-      audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-      drumRollRef.current = new Audio(DRUM_ROLL_URL);
-      fanfareRef.current = new Audio(FANFARE_URL);
-      drumRollRef.current.loop = true;
-      setAudioInitialized(true);
+      try {
+        drumRollRef.current = new Audio(DRUM_ROLL_URL);
+        fanfareRef.current = new Audio(FANFARE_URL);
+        drumRollRef.current.loop = true;
+        drumRollRef.current.volume = 0.7;
+        fanfareRef.current.volume = 0.8;
+        setAudioInitialized(true);
+      } catch (e) {
+        console.warn("Audio initialization failed:", e);
+      }
     }
   }, [audioInitialized]);
 
@@ -49,7 +78,9 @@ export default function Home() {
       .split("\n")
       .map((name) => name.trim())
       .filter((name) => name.length > 0);
-    setNames(parsed);
+    setAllNames(parsed);
+    setRemainingNames(parsed);
+    setWinners([]);
     return parsed;
   }, []);
 
@@ -81,6 +112,10 @@ export default function Home() {
     const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
     const interval = setInterval(() => {
+      if (!isMountedRef.current) {
+        clearInterval(interval);
+        return;
+      }
       const timeLeft = animationEnd - Date.now();
       if (timeLeft <= 0) {
         clearInterval(interval);
@@ -100,25 +135,36 @@ export default function Home() {
         colors: ["#FFD700", "#FFA500", "#FF6347", "#00FF00", "#00CED1", "#FF1493"],
       });
     }, 250);
+
+    return () => clearInterval(interval);
   }, []);
 
   const startRoulette = useCallback(() => {
-    if (names.length < 2) return;
+    if (remainingNames.length < 1 || isSpinning) return;
     
     initializeAudio();
+    setIsSpinning(true);
     setAppState("spinning");
     setIsInputCollapsed(true);
     playSound(drumRollRef.current);
 
+    const namesToUse = remainingNames.length > 1 ? remainingNames : allNames;
     let currentIndex = 0;
     let speed = 50;
     let iterations = 0;
     const totalIterations = 40 + Math.floor(Math.random() * 20);
-    const winnerIndex = Math.floor(Math.random() * names.length);
+    const winnerIndex = Math.floor(Math.random() * namesToUse.length);
+    const selectedWinner = namesToUse[winnerIndex];
 
     const spin = () => {
-      setCurrentName(names[currentIndex]);
-      currentIndex = (currentIndex + 1) % names.length;
+      if (!isMountedRef.current) {
+        stopSound(drumRollRef.current);
+        setIsSpinning(false);
+        return;
+      }
+
+      setCurrentName(namesToUse[currentIndex]);
+      currentIndex = (currentIndex + 1) % namesToUse.length;
       iterations++;
 
       if (iterations >= totalIterations - 10) {
@@ -131,45 +177,59 @@ export default function Home() {
       if (iterations >= totalIterations) {
         if (spinIntervalRef.current) {
           clearTimeout(spinIntervalRef.current);
+          spinIntervalRef.current = null;
         }
         stopSound(drumRollRef.current);
-        setCurrentName(names[winnerIndex]);
-        setWinner(names[winnerIndex]);
-        setAppState("winner");
-        playSound(fanfareRef.current);
-        fireConfetti();
+        
+        if (isMountedRef.current) {
+          setCurrentName(selectedWinner);
+          setWinner(selectedWinner);
+          setWinners((prev) => [...prev, selectedWinner]);
+          setRemainingNames((prev) => prev.filter((name) => name !== selectedWinner));
+          setAppState("winner");
+          setIsSpinning(false);
+          playSound(fanfareRef.current);
+          fireConfetti();
+        }
       } else {
         spinIntervalRef.current = setTimeout(spin, speed);
       }
     };
 
     spin();
-  }, [names, initializeAudio, playSound, stopSound, fireConfetti]);
+  }, [remainingNames, allNames, isSpinning, initializeAudio, playSound, stopSound, fireConfetti]);
 
   const resetToSetup = useCallback(() => {
+    if (spinIntervalRef.current) {
+      clearTimeout(spinIntervalRef.current);
+      spinIntervalRef.current = null;
+    }
     setAppState("setup");
     setWinner("");
     setCurrentName("");
     setIsInputCollapsed(false);
+    setIsSpinning(false);
+    setRemainingNames(allNames);
+    setWinners([]);
     stopSound(drumRollRef.current);
     stopSound(fanfareRef.current);
-  }, [stopSound]);
+  }, [allNames, stopSound]);
 
   const drawAgain = useCallback(() => {
+    if (remainingNames.length < 1) {
+      setRemainingNames(allNames);
+    }
     setWinner("");
     setCurrentName("");
-    startRoulette();
-  }, [startRoulette]);
+    setTimeout(() => startRoulette(), 100);
+  }, [remainingNames.length, allNames, startRoulette]);
 
-  useEffect(() => {
-    return () => {
-      if (spinIntervalRef.current) {
-        clearTimeout(spinIntervalRef.current);
-      }
-      stopSound(drumRollRef.current);
-      stopSound(fanfareRef.current);
-    };
-  }, [stopSound]);
+  const clearInput = useCallback(() => {
+    setInputText("");
+    setAllNames([]);
+    setRemainingNames([]);
+    setWinners([]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -191,16 +251,18 @@ export default function Home() {
         />
       </div>
 
-      <Button
-        size="icon"
-        variant="ghost"
-        className="fixed top-4 right-4 z-50"
-        onClick={() => setIsMuted(!isMuted)}
-        data-testid="button-mute-toggle"
-        aria-label={isMuted ? "Unmute" : "Mute"}
-      >
-        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-      </Button>
+      <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+        <ThemeToggle />
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={() => setIsMuted(!isMuted)}
+          data-testid="button-mute-toggle"
+          aria-label={isMuted ? "Unmute" : "Mute"}
+        >
+          {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+        </Button>
+      </div>
 
       <div className="relative z-10 flex flex-col min-h-screen">
         <header className="text-center py-8 md:py-12">
@@ -219,21 +281,18 @@ export default function Home() {
           {appState === "setup" && (
             <div className="w-full max-w-2xl space-y-8">
               <Card className="p-6 md:p-8 bg-card/80 backdrop-blur-sm border-primary/20">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
                   <div className="flex items-center gap-2">
                     <Users className="w-5 h-5 text-primary" />
-                    <span className="text-lg font-medium">
-                      {names.length > 0 ? `${names.length} participants` : "Enter participants"}
+                    <span className="text-lg font-medium" data-testid="text-participant-count">
+                      {allNames.length > 0 ? `${allNames.length} participants` : "Enter participants"}
                     </span>
                   </div>
                   {inputText && (
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => {
-                        setInputText("");
-                        setNames([]);
-                      }}
+                      onClick={clearInput}
                       data-testid="button-clear-names"
                     >
                       <RotateCcw className="w-4 h-4 mr-2" />
@@ -254,7 +313,7 @@ export default function Home() {
               <div className="flex justify-center">
                 <Button
                   size="lg"
-                  disabled={names.length < 2}
+                  disabled={allNames.length < 2}
                   onClick={startRoulette}
                   className="px-16 py-6 text-2xl font-display font-bold tracking-wider animate-pulse-glow disabled:animate-none disabled:opacity-50"
                   data-testid="button-start"
@@ -265,8 +324,8 @@ export default function Home() {
                 </Button>
               </div>
 
-              {names.length > 0 && names.length < 2 && (
-                <p className="text-center text-destructive text-sm">
+              {allNames.length > 0 && allNames.length < 2 && (
+                <p className="text-center text-destructive text-sm" data-testid="text-error-min-participants">
                   Please enter at least 2 participants to start the draw
                 </p>
               )}
@@ -298,7 +357,7 @@ export default function Home() {
 
               <div className="mt-12 flex items-center gap-2 text-muted-foreground">
                 <Users className="w-5 h-5" />
-                <span>{names.length} participants</span>
+                <span data-testid="text-remaining-count">{remainingNames.length} remaining</span>
               </div>
             </div>
           )}
@@ -337,12 +396,20 @@ export default function Home() {
                 >
                   Congratulations!
                 </div>
+
+                {remainingNames.length > 0 && (
+                  <div className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <UserMinus className="w-4 h-4" />
+                    <span data-testid="text-remaining-after-win">{remainingNames.length} participants remaining</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 mt-12">
                 <Button
                   size="lg"
                   onClick={drawAgain}
+                  disabled={isSpinning}
                   className="px-8 py-4 text-lg font-display font-bold tracking-wider"
                   data-testid="button-draw-again"
                 >
@@ -359,6 +426,23 @@ export default function Home() {
                   Back to Setup
                 </Button>
               </div>
+
+              {winners.length > 1 && (
+                <div className="mt-8 text-center">
+                  <p className="text-sm text-muted-foreground mb-2">Previous winners:</p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {winners.slice(0, -1).map((w, i) => (
+                      <span 
+                        key={`${w}-${i}`}
+                        className="px-3 py-1 bg-primary/20 text-primary rounded-full text-sm font-medium"
+                        data-testid={`text-previous-winner-${i}`}
+                      >
+                        {w}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </main>
@@ -373,7 +457,9 @@ export default function Home() {
               >
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Users className="w-4 h-4" />
-                  <span className="text-sm">{names.length} participants</span>
+                  <span className="text-sm" data-testid="text-collapsed-count">
+                    {allNames.length} total / {remainingNames.length} remaining
+                  </span>
                 </div>
                 {isInputCollapsed ? (
                   <ChevronUp className="w-4 h-4 text-muted-foreground" />
