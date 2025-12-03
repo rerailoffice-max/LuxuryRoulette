@@ -23,6 +23,11 @@ import confetti from "canvas-confetti";
 
 type AppState = "setup" | "preview" | "spinning" | "winner";
 
+interface LotteryEntry {
+  id: number;
+  name: string;
+}
+
 const removeHonorifics = (name: string): string => {
   return name
     .replace(/さん$/g, "")
@@ -36,8 +41,8 @@ const removeHonorifics = (name: string): string => {
 };
 
 export default function Home() {
-  const [allNames, setAllNames] = useState<string[]>([]);
-  const [remainingNames, setRemainingNames] = useState<string[]>([]);
+  const [allEntries, setAllEntries] = useState<LotteryEntry[]>([]);
+  const [remainingEntries, setRemainingEntries] = useState<LotteryEntry[]>([]);
   const [inputText, setInputText] = useState("");
   const [appState, setAppState] = useState<AppState>("setup");
   const [currentName, setCurrentName] = useState("");
@@ -46,8 +51,6 @@ export default function Home() {
   const [roundNumber, setRoundNumber] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [isInputCollapsed, setIsInputCollapsed] = useState(true);
-  const [audioInitialized, setAudioInitialized] = useState(false);
-  const [audioReady, setAudioReady] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [rouletteSettings, setRouletteSettings] = useState<RouletteSettings>(DEFAULT_ROULETTE_SETTINGS);
   const [visualTheme, setVisualTheme] = useState<VisualTheme>("default");
@@ -56,10 +59,15 @@ export default function Home() {
   const { toast } = useToast();
   const themeConfig = useMemo(() => THEME_CONFIGS[visualTheme], [visualTheme]);
   
-  const drumRollRef = useRef<HTMLAudioElement | null>(null);
-  const fanfareRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const drumRollOscRef = useRef<OscillatorNode | null>(null);
+  const drumRollLfoRef = useRef<OscillatorNode | null>(null);
   const spinIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
+
+  // Derived values for backward compatibility
+  const allNames = useMemo(() => allEntries.map(e => e.name), [allEntries]);
+  const remainingNames = useMemo(() => remainingEntries.map(e => e.name), [remainingEntries]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -69,91 +77,147 @@ export default function Home() {
         clearTimeout(spinIntervalRef.current);
         spinIntervalRef.current = null;
       }
-      if (drumRollRef.current) {
-        drumRollRef.current.pause();
-        drumRollRef.current.currentTime = 0;
+      // Stop oscillators directly without calling stopDrumRoll to avoid dependency issues
+      if (drumRollOscRef.current) {
+        try { drumRollOscRef.current.stop(); } catch (e) {}
+        drumRollOscRef.current = null;
       }
-      if (fanfareRef.current) {
-        fanfareRef.current.pause();
-        fanfareRef.current.currentTime = 0;
+      if (drumRollLfoRef.current) {
+        try { drumRollLfoRef.current.stop(); } catch (e) {}
+        drumRollLfoRef.current = null;
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
       }
     };
   }, []);
 
-  const initializeAudio = useCallback(async () => {
+  const initAudioContext = useCallback(() => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    }
+    return audioContextRef.current;
+  }, []);
+
+  const startDrumRoll = useCallback(() => {
+    if (isMuted) return;
+    
     try {
-      if (drumRollRef.current) {
-        drumRollRef.current.pause();
-        drumRollRef.current = null;
+      const ctx = initAudioContext();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
       }
-      if (fanfareRef.current) {
-        fanfareRef.current.pause();
-        fanfareRef.current = null;
-      }
-
-      const drumRoll = new Audio(soundSettings.drumRollUrl);
-      const fanfare = new Audio(soundSettings.fanfareUrl);
       
-      drumRoll.loop = true;
-      drumRoll.volume = 0.7;
-      fanfare.volume = 0.8;
+      // Stop any existing drum roll
+      stopDrumRoll();
       
-      drumRoll.preload = "auto";
-      fanfare.preload = "auto";
-
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise<void>((_, reject) => {
-        setTimeout(() => reject(new Error("Audio load timeout")), 5000);
-      });
-
-      await Promise.race([
-        Promise.all([
-          new Promise<void>((resolve, reject) => {
-            drumRoll.addEventListener("canplaythrough", () => resolve(), { once: true });
-            drumRoll.addEventListener("error", () => reject(new Error("ドラムロール音声の読み込みに失敗しました")), { once: true });
-            drumRoll.load();
-          }),
-          new Promise<void>((resolve, reject) => {
-            fanfare.addEventListener("canplaythrough", () => resolve(), { once: true });
-            fanfare.addEventListener("error", () => reject(new Error("ファンファーレ音声の読み込みに失敗しました")), { once: true });
-            fanfare.load();
-          })
-        ]),
-        timeoutPromise
-      ]);
-
-      drumRollRef.current = drumRoll;
-      fanfareRef.current = fanfare;
-      setAudioInitialized(true);
-      setAudioReady(true);
+      // Create drum roll effect using noise-like oscillation
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      const lfoOsc = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      
+      // Main oscillator for drum-like sound
+      oscillator.type = 'triangle';
+      oscillator.frequency.setValueAtTime(100, ctx.currentTime);
+      
+      // LFO for tremolo effect (drum roll feel)
+      lfoOsc.type = 'sine';
+      lfoOsc.frequency.setValueAtTime(20, ctx.currentTime); // 20Hz tremolo
+      lfoGain.gain.setValueAtTime(0.3, ctx.currentTime);
+      
+      // Connect LFO to gain
+      lfoOsc.connect(lfoGain);
+      lfoGain.connect(gainNode.gain);
+      
+      // Main signal path
+      gainNode.gain.setValueAtTime(0.15, ctx.currentTime);
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      oscillator.start();
+      lfoOsc.start();
+      
+      drumRollOscRef.current = oscillator;
+      drumRollLfoRef.current = lfoOsc;
     } catch (e) {
-      console.warn("Audio initialization failed:", e);
-      setAudioInitialized(true); // Mark as initialized even on failure to prevent retrying
-      setAudioReady(false);
-      toast({
-        title: "音声の読み込みに失敗しました",
-        description: "効果音なしで抽選を続行できます",
-        variant: "destructive",
-      });
+      console.warn("Drum roll failed:", e);
     }
-  }, [soundSettings.drumRollUrl, soundSettings.fanfareUrl, toast]);
+  }, [isMuted, initAudioContext]);
 
-  useEffect(() => {
-    if (audioInitialized) {
-      initializeAudio();
+  const stopDrumRoll = useCallback(() => {
+    if (drumRollOscRef.current) {
+      try {
+        drumRollOscRef.current.stop();
+      } catch (e) {
+        // Already stopped
+      }
+      drumRollOscRef.current = null;
     }
-  }, [soundSettings.drumRollUrl, soundSettings.fanfareUrl]);
+    if (drumRollLfoRef.current) {
+      try {
+        drumRollLfoRef.current.stop();
+      } catch (e) {
+        // Already stopped
+      }
+      drumRollLfoRef.current = null;
+    }
+  }, []);
+
+  const playFanfare = useCallback(() => {
+    if (isMuted) return;
+    
+    try {
+      const ctx = initAudioContext();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      
+      // Play a celebratory fanfare melody
+      const notes = [
+        { freq: 523.25, time: 0 },      // C5
+        { freq: 659.25, time: 0.15 },   // E5
+        { freq: 783.99, time: 0.30 },   // G5
+        { freq: 1046.50, time: 0.45 },  // C6
+        { freq: 1046.50, time: 0.70 },  // C6 (hold)
+      ];
+      
+      notes.forEach(({ freq, time }) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + time);
+        
+        gain.gain.setValueAtTime(0, ctx.currentTime + time);
+        gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + time + 0.03);
+        gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + time + 0.1);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + time + 0.25);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc.start(ctx.currentTime + time);
+        osc.stop(ctx.currentTime + time + 0.3);
+      });
+    } catch (e) {
+      console.warn("Fanfare failed:", e);
+    }
+  }, [isMuted, initAudioContext]);
 
   const parseNames = useCallback((text: string) => {
-    const parsed = text
+    let idCounter = 0;
+    const entries: LotteryEntry[] = text
       .split("\n")
       .map((name) => name.trim())
       .filter((name) => name.length > 0)
       .map(removeHonorifics)
-      .filter((name) => name.length > 0);
-    setAllNames(parsed);
-    setRemainingNames(parsed);
-    return parsed;
+      .filter((name) => name.length > 0)
+      .map((name) => ({ id: idCounter++, name }));
+    
+    setAllEntries(entries);
+    setRemainingEntries(entries);
+    return entries;
   }, []);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -161,22 +225,6 @@ export default function Home() {
     setInputText(text);
     parseNames(text);
   }, [parseNames]);
-
-  const playSound = useCallback((audio: HTMLAudioElement | null) => {
-    if (audio && !isMuted && audioReady) {
-      audio.currentTime = 0;
-      audio.play().catch((e) => {
-        console.warn("Audio playback failed:", e);
-      });
-    }
-  }, [isMuted, audioReady]);
-
-  const stopSound = useCallback((audio: HTMLAudioElement | null) => {
-    if (audio) {
-      audio.pause();
-      audio.currentTime = 0;
-    }
-  }, []);
 
   const fireConfetti = useCallback(() => {
     const duration = 4000;
@@ -214,16 +262,16 @@ export default function Home() {
   }, [themeConfig.confettiColors]);
 
   const startRoulette = useCallback(() => {
-    if (allNames.length < 2 || isSpinning) return;
+    if (allEntries.length < 2 || isSpinning) return;
     
-    initializeAudio();
     setIsSpinning(true);
     setAppState("spinning");
     setIsInputCollapsed(true);
-    playSound(drumRollRef.current);
+    startDrumRoll();
 
-    const namesToUse = remainingNames.length > 1 ? remainingNames : allNames;
-    if (namesToUse.length === 0) {
+    // Use remaining entries if available, only fall back to all entries when pool is empty
+    const entriesToUse = remainingEntries.length > 0 ? remainingEntries : allEntries;
+    if (entriesToUse.length === 0) {
       setIsSpinning(false);
       setAppState("setup");
       return;
@@ -233,18 +281,18 @@ export default function Home() {
     let iterations = 0;
     const baseIterations = Math.floor(rouletteSettings.spinDuration * 10);
     const totalIterations = baseIterations + Math.floor(Math.random() * 10);
-    const winnerIndex = Math.floor(Math.random() * namesToUse.length);
-    const selectedWinner = namesToUse[winnerIndex];
+    const winnerIndex = Math.floor(Math.random() * entriesToUse.length);
+    const selectedEntry = entriesToUse[winnerIndex];
 
     const spin = () => {
       if (!isMountedRef.current) {
-        stopSound(drumRollRef.current);
+        stopDrumRoll();
         setIsSpinning(false);
         return;
       }
 
-      setCurrentName(namesToUse[currentIndex]);
-      currentIndex = (currentIndex + 1) % namesToUse.length;
+      setCurrentName(entriesToUse[currentIndex].name);
+      currentIndex = (currentIndex + 1) % entriesToUse.length;
       iterations++;
 
       const slowdownPhase1 = totalIterations - 10;
@@ -261,21 +309,22 @@ export default function Home() {
           clearTimeout(spinIntervalRef.current);
           spinIntervalRef.current = null;
         }
-        stopSound(drumRollRef.current);
+        stopDrumRoll();
         
         if (isMountedRef.current) {
-          setCurrentName(selectedWinner);
-          setWinner(selectedWinner);
+          setCurrentName(selectedEntry.name);
+          setWinner(selectedEntry.name);
           setWinnerRecords((prev) => [...prev, {
-            name: selectedWinner,
+            name: selectedEntry.name,
             timestamp: new Date(),
             round: prev.length + 1
           }]);
           setRoundNumber((prev) => prev + 1);
-          setRemainingNames((prev) => prev.filter((name) => name !== selectedWinner));
+          // Remove only the specific entry by ID (allows duplicates)
+          setRemainingEntries((prev) => prev.filter((entry) => entry.id !== selectedEntry.id));
           setAppState("winner");
           setIsSpinning(false);
-          playSound(fanfareRef.current);
+          playFanfare();
           fireConfetti();
         }
       } else {
@@ -284,7 +333,7 @@ export default function Home() {
     };
 
     spin();
-  }, [remainingNames, allNames, isSpinning, rouletteSettings, initializeAudio, playSound, stopSound, fireConfetti]);
+  }, [remainingEntries, allEntries, isSpinning, rouletteSettings, startDrumRoll, stopDrumRoll, playFanfare, fireConfetti]);
 
   const resetToSetup = useCallback(() => {
     if (spinIntervalRef.current) {
@@ -296,41 +345,33 @@ export default function Home() {
     setCurrentName("");
     setIsInputCollapsed(false);
     setIsSpinning(false);
-    stopSound(drumRollRef.current);
-    stopSound(fanfareRef.current);
-  }, [stopSound]);
+    stopDrumRoll();
+  }, [stopDrumRoll]);
 
   const goToPreview = useCallback(() => {
-    if (allNames.length < 2) return;
-    
-    // Initialize audio in background without blocking
-    if (!audioInitialized) {
-      initializeAudio().catch(() => {
-        // Audio init failure is handled in initializeAudio
-      });
-    }
+    if (allEntries.length < 2) return;
     
     setAppState("preview");
     setIsInputCollapsed(true);
-  }, [allNames.length, audioInitialized, initializeAudio]);
+  }, [allEntries.length]);
 
   const startFromPreview = useCallback(() => {
     startRoulette();
   }, [startRoulette]);
 
   const drawAgain = useCallback(() => {
-    if (remainingNames.length < 1) {
-      setRemainingNames(allNames);
+    if (remainingEntries.length < 1) {
+      setRemainingEntries([...allEntries]);
     }
     setWinner("");
     setCurrentName("");
     setTimeout(() => startRoulette(), 100);
-  }, [remainingNames.length, allNames, startRoulette]);
+  }, [remainingEntries.length, allEntries, startRoulette]);
 
   const clearInput = useCallback(() => {
     setInputText("");
-    setAllNames([]);
-    setRemainingNames([]);
+    setAllEntries([]);
+    setRemainingEntries([]);
     setWinnerRecords([]);
     setRoundNumber(1);
   }, []);
@@ -338,8 +379,8 @@ export default function Home() {
   const clearWinnerHistory = useCallback(() => {
     setWinnerRecords([]);
     setRoundNumber(1);
-    setRemainingNames(allNames);
-  }, [allNames]);
+    setRemainingEntries([...allEntries]);
+  }, [allEntries]);
 
   return (
     <div 

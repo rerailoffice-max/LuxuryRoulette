@@ -18,9 +18,50 @@ export interface SoundSettings {
   fanfareName: string | null;
 }
 
+// Generate drum roll sound using Web Audio API
+export function createDrumRollSound(audioContext: AudioContext): OscillatorNode {
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.type = 'triangle';
+  oscillator.frequency.setValueAtTime(150, audioContext.currentTime);
+  
+  gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  return oscillator;
+}
+
+// Generate fanfare sound using Web Audio API
+export function createFanfareSound(audioContext: AudioContext): void {
+  const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+  const duration = 0.3;
+  
+  notes.forEach((freq, index) => {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.type = 'square';
+    oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+    
+    const startTime = audioContext.currentTime + index * duration;
+    gainNode.gain.setValueAtTime(0, startTime);
+    gainNode.gain.linearRampToValueAtTime(0.2, startTime + 0.05);
+    gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.start(startTime);
+    oscillator.stop(startTime + duration);
+  });
+}
+
 export const DEFAULT_SOUND_SETTINGS: SoundSettings = {
-  drumRollUrl: "https://www.soundjay.com/misc/sounds/drum-roll-01.mp3",
-  fanfareUrl: "https://www.soundjay.com/misc/sounds/ta-da-1.mp3",
+  drumRollUrl: "",
+  fanfareUrl: "",
   drumRollName: null,
   fanfareName: null,
 };
@@ -113,29 +154,80 @@ export function SoundSettingsPanel({ settings, onSettingsChange }: SoundSettings
     const setPlaying = type === "drumRoll" ? setIsPlayingDrumRoll : setIsPlayingFanfare;
     const audioRef = type === "drumRoll" ? drumRollAudioRef : fanfareAudioRef;
 
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
+    // If using custom audio file
+    if (url) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
 
-    const audio = new Audio(url);
-    audioRef.current = audio;
-    setPlaying(true);
-    
-    audio.play().catch((e) => {
-      console.error("Failed to play audio:", e);
-      setPlaying(false);
-    });
-    
-    audio.onended = () => {
-      setPlaying(false);
-      audioRef.current = null;
-    };
-    
-    audio.onerror = () => {
-      setPlaying(false);
-      audioRef.current = null;
-    };
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      setPlaying(true);
+      
+      audio.play().catch((e) => {
+        console.error("Failed to play audio:", e);
+        setPlaying(false);
+      });
+      
+      audio.onended = () => {
+        setPlaying(false);
+        audioRef.current = null;
+      };
+      
+      audio.onerror = () => {
+        setPlaying(false);
+        audioRef.current = null;
+      };
+    } else {
+      // Use Web Audio API for default sounds
+      try {
+        const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+        setPlaying(true);
+        
+        if (type === "drumRoll") {
+          // Preview drum roll for 1.5 seconds
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          const lfoOsc = audioContext.createOscillator();
+          const lfoGain = audioContext.createGain();
+          
+          oscillator.type = 'triangle';
+          oscillator.frequency.setValueAtTime(100, audioContext.currentTime);
+          
+          lfoOsc.type = 'sine';
+          lfoOsc.frequency.setValueAtTime(20, audioContext.currentTime);
+          lfoGain.gain.setValueAtTime(0.3, audioContext.currentTime);
+          
+          lfoOsc.connect(lfoGain);
+          lfoGain.connect(gainNode.gain);
+          
+          gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          oscillator.start();
+          lfoOsc.start();
+          
+          setTimeout(() => {
+            oscillator.stop();
+            lfoOsc.stop();
+            setPlaying(false);
+            audioContext.close();
+          }, 1500);
+        } else {
+          // Play fanfare
+          createFanfareSound(audioContext);
+          setTimeout(() => {
+            setPlaying(false);
+            audioContext.close();
+          }, 1200);
+        }
+      } catch (e) {
+        console.error("Failed to play audio:", e);
+        setPlaying(false);
+      }
+    }
   }, [settings.drumRollUrl, settings.fanfareUrl]);
 
   return (
