@@ -30,20 +30,20 @@ export function RouletteSettingsPanel({ settings, onSettingsChange }: RouletteSe
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <Card className="bg-card/80 backdrop-blur-sm border-primary/20">
+    <Card className="bg-gray-900/90 backdrop-blur-sm border-2 border-amber-400">
       <div 
         className="flex items-center justify-between p-4 cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
         data-testid="button-toggle-settings"
       >
         <div className="flex items-center gap-2">
-          <Settings className="w-5 h-5 text-primary" />
-          <span className="font-medium">ルーレット設定</span>
+          <Settings className="w-5 h-5 text-amber-400" />
+          <span className="font-medium text-white">ルーレット設定</span>
         </div>
         {isExpanded ? (
-          <ChevronUp className="w-5 h-5 text-muted-foreground" />
+          <ChevronUp className="w-5 h-5 text-white/70" />
         ) : (
-          <ChevronDown className="w-5 h-5 text-muted-foreground" />
+          <ChevronDown className="w-5 h-5 text-white/70" />
         )}
       </div>
 
@@ -51,11 +51,11 @@ export function RouletteSettingsPanel({ settings, onSettingsChange }: RouletteSe
         <div className="px-4 pb-4 space-y-6">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-muted-foreground" />
+              <Label className="flex items-center gap-2 text-white">
+                <Clock className="w-4 h-4 text-amber-400" />
                 回転時間
               </Label>
-              <span className="text-sm text-muted-foreground" data-testid="text-spin-duration">
+              <span className="text-sm text-amber-400 font-bold" data-testid="text-spin-duration">
                 {settings.spinDuration}秒
               </span>
             </div>
@@ -70,7 +70,7 @@ export function RouletteSettingsPanel({ settings, onSettingsChange }: RouletteSe
               className="w-full"
               data-testid="slider-spin-duration"
             />
-            <div className="flex justify-between text-xs text-muted-foreground">
+            <div className="flex justify-between text-xs text-white/60">
               <span>短め (2秒)</span>
               <span>ドキドキ (10秒)</span>
             </div>
@@ -78,11 +78,11 @@ export function RouletteSettingsPanel({ settings, onSettingsChange }: RouletteSe
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-muted-foreground" />
+              <Label className="flex items-center gap-2 text-white">
+                <Zap className="w-4 h-4 text-amber-400" />
                 回転スピード
               </Label>
-              <span className="text-sm text-muted-foreground" data-testid="text-spin-speed">
+              <span className="text-sm text-amber-400 font-bold" data-testid="text-spin-speed">
                 {settings.spinSpeed === 30 ? "速い" : settings.spinSpeed === 50 ? "普通" : "ゆっくり"}
               </span>
             </div>
@@ -97,7 +97,7 @@ export function RouletteSettingsPanel({ settings, onSettingsChange }: RouletteSe
               className="w-full"
               data-testid="slider-spin-speed"
             />
-            <div className="flex justify-between text-xs text-muted-foreground">
+            <div className="flex justify-between text-xs text-white/60">
               <span>速い</span>
               <span>ゆっくり</span>
             </div>
@@ -110,7 +110,7 @@ export function RouletteSettingsPanel({ settings, onSettingsChange }: RouletteSe
               e.stopPropagation();
               onSettingsChange(DEFAULT_ROULETTE_SETTINGS);
             }}
-            className="w-full"
+            className="w-full bg-white/10 border-white/30 text-white hover:bg-white/20"
             data-testid="button-reset-settings"
           >
             初期設定に戻す

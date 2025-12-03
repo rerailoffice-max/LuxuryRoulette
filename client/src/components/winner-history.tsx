@@ -72,22 +72,22 @@ export function WinnerHistory({ winners, onClear }: WinnerHistoryProps) {
   }
 
   return (
-    <Card className="bg-card/80 backdrop-blur-sm border-primary/20">
+    <Card className="bg-gray-900/90 backdrop-blur-sm border-2 border-amber-400">
       <div 
         className="flex items-center justify-between p-4 cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
         data-testid="button-toggle-history"
       >
         <div className="flex items-center gap-2">
-          <Trophy className="w-5 h-5 text-primary" />
-          <span className="font-medium">
+          <Trophy className="w-5 h-5 text-amber-400" />
+          <span className="font-medium text-white">
             当選履歴 ({winners.length}件)
           </span>
         </div>
         {isExpanded ? (
-          <ChevronUp className="w-5 h-5 text-muted-foreground" />
+          <ChevronUp className="w-5 h-5 text-white/70" />
         ) : (
-          <ChevronDown className="w-5 h-5 text-muted-foreground" />
+          <ChevronDown className="w-5 h-5 text-white/70" />
         )}
       </div>
 
@@ -101,6 +101,7 @@ export function WinnerHistory({ winners, onClear }: WinnerHistoryProps) {
                 e.stopPropagation();
                 exportToCSV();
               }}
+              className="bg-white/10 border-white/30 text-white hover:bg-white/20"
               data-testid="button-export-csv"
             >
               <Download className="w-4 h-4 mr-2" />
@@ -113,10 +114,11 @@ export function WinnerHistory({ winners, onClear }: WinnerHistoryProps) {
                 e.stopPropagation();
                 copyToClipboard();
               }}
+              className="bg-white/10 border-white/30 text-white hover:bg-white/20"
               data-testid="button-copy-history"
             >
               {copied ? (
-                <Check className="w-4 h-4 mr-2 text-green-500" />
+                <Check className="w-4 h-4 mr-2 text-green-400" />
               ) : (
                 <Copy className="w-4 h-4 mr-2" />
               )}
@@ -129,7 +131,7 @@ export function WinnerHistory({ winners, onClear }: WinnerHistoryProps) {
                 e.stopPropagation();
                 onClear();
               }}
-              className="text-muted-foreground"
+              className="text-white/60 hover:bg-white/10 hover:text-white"
               data-testid="button-clear-history"
             >
               <X className="w-4 h-4 mr-2" />
@@ -141,18 +143,18 @@ export function WinnerHistory({ winners, onClear }: WinnerHistoryProps) {
             {winners.map((winner, index) => (
               <div 
                 key={`${winner.name}-${winner.round}`}
-                className="flex items-center justify-between p-3 rounded-md bg-background/50 border border-border/50"
+                className="flex items-center justify-between p-3 rounded-md bg-white/10 border border-white/20"
                 data-testid={`winner-record-${index}`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-medium text-primary bg-primary/20 px-2 py-1 rounded-full">
+                  <span className="text-xs font-bold text-gray-900 bg-amber-400 px-2 py-1 rounded-full">
                     第{winner.round}回
                   </span>
-                  <span className="font-medium text-foreground">
+                  <span className="font-bold text-white">
                     {winner.name}
                   </span>
                 </div>
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1 text-sm text-white/60">
                   <Clock className="w-3 h-3" />
                   <span>{formatTime(winner.timestamp)}</span>
                 </div>

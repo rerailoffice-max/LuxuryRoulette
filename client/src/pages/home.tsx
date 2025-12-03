@@ -334,19 +334,18 @@ export default function Home() {
       className="min-h-screen relative overflow-hidden"
       style={{
         background: `linear-gradient(135deg, 
-          hsl(45 100% 97%) 0%, 
-          hsl(45 80% 95%) 25%, 
-          hsl(40 70% 93%) 50%, 
-          hsl(35 60% 95%) 75%,
-          hsl(45 100% 97%) 100%)`
+          #1a1a2e 0%, 
+          #16213e 25%, 
+          #0f3460 50%, 
+          #1a1a2e 100%)`
       }}
     >
-      <div className="absolute inset-0 pointer-events-none opacity-30">
+      <div className="absolute inset-0 pointer-events-none opacity-40">
         <div 
           className="w-full h-full"
           style={{
-            backgroundImage: `radial-gradient(circle at 25% 25%, ${themeConfig.primaryColor}40 2px, transparent 2px),
-                              radial-gradient(circle at 75% 75%, ${themeConfig.primaryColor}30 2px, transparent 2px)`,
+            backgroundImage: `radial-gradient(circle at 25% 25%, ${themeConfig.accentColor}30 2px, transparent 2px),
+                              radial-gradient(circle at 75% 75%, ${themeConfig.accentColor}20 2px, transparent 2px)`,
             backgroundSize: "80px 80px",
           }}
         />
@@ -359,7 +358,7 @@ export default function Home() {
           onClick={() => setIsMuted(!isMuted)}
           data-testid="button-mute-toggle"
           aria-label={isMuted ? "音をオン" : "音をオフ"}
-          className="bg-white/80 backdrop-blur-sm"
+          className="bg-gray-900/90 border-white/30 text-white hover:bg-gray-800"
         >
           {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
         </Button>
@@ -370,15 +369,14 @@ export default function Home() {
           <h1 
             className="font-display text-4xl md:text-6xl font-bold tracking-wider"
             style={{ 
-              color: themeConfig.primaryColor,
-              textShadow: `2px 2px 4px rgba(0,0,0,0.1)` 
+              color: themeConfig.accentColor,
+              textShadow: `0 0 20px ${themeConfig.glowColor}, 2px 2px 4px rgba(0,0,0,0.5)` 
             }}
           >
             抽選ルーレット
           </h1>
           <p 
-            className="mt-2 text-lg tracking-wide font-medium"
-            style={{ color: "#555" }}
+            className="mt-2 text-lg tracking-wide font-medium text-white/80"
           >
             ワクワク抽選タイム！
           </p>
@@ -387,19 +385,20 @@ export default function Home() {
         <main className="flex-1 flex flex-col items-center justify-center px-4 pb-8">
           {appState === "setup" && (
             <div className="w-full max-w-2xl space-y-8">
-              <Card className="p-6 md:p-8 bg-white/90 backdrop-blur-sm border-2" style={{ borderColor: `${themeConfig.primaryColor}30` }}>
+              <Card className="p-6 md:p-8 bg-gray-900/95 backdrop-blur-sm border-2" style={{ borderColor: themeConfig.accentColor }}>
                 <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
                   <div className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-primary" />
-                    <span className="text-lg font-medium" data-testid="text-participant-count">
+                    <Users className="w-5 h-5" style={{ color: themeConfig.accentColor }} />
+                    <span className="text-lg font-medium text-white" data-testid="text-participant-count">
                       {allNames.length > 0 ? `${allNames.length}名の参加者` : "参加者を入力してください"}
                     </span>
                   </div>
                   {inputText && (
                     <Button
                       size="sm"
-                      variant="ghost"
+                      variant="outline"
                       onClick={clearInput}
+                      className="bg-white/10 border-white/30 text-white hover:bg-white/20"
                       data-testid="button-clear-names"
                     >
                       <RotateCcw className="w-4 h-4 mr-2" />
@@ -412,7 +411,8 @@ export default function Home() {
                   value={inputText}
                   onChange={handleInputChange}
                   placeholder="参加者の名前を入力してください（1行に1名）&#10;&#10;例：&#10;山田太郎さん&#10;佐藤花子様&#10;田中一郎&#10;&#10;※敬称（さん・様など）は自動で削除されます"
-                  className="min-h-64 md:min-h-80 text-base resize-none bg-background/50 border-muted focus:border-primary transition-colors"
+                  className="min-h-64 md:min-h-80 text-base resize-none bg-gray-800/90 text-white border-2 focus:ring-2 transition-colors placeholder:text-white/50"
+                  style={{ borderColor: themeConfig.accentColor, outlineColor: themeConfig.accentColor }}
                   data-testid="input-names"
                 />
               </Card>
@@ -473,25 +473,28 @@ export default function Home() {
               <div className="text-center mb-6">
                 <span 
                   className="text-2xl md:text-3xl font-display tracking-widest font-bold"
-                  style={{ color: themeConfig.primaryColor }}
+                  style={{ 
+                    color: themeConfig.accentColor,
+                    textShadow: `0 0 10px ${themeConfig.glowColor}` 
+                  }}
                 >
                   今回の参加者
                 </span>
-                <p className="mt-2" style={{ color: "#555" }}>
+                <p className="mt-2 text-white/80">
                   この中から当選者が選ばれます！
                 </p>
               </div>
               
               <div className="w-full max-w-4xl px-4">
-                <Card className="p-4 mb-6 bg-white/80 backdrop-blur-sm border-2" style={{ borderColor: `${themeConfig.primaryColor}30` }}>
-                  <div className="flex flex-wrap justify-center gap-3 max-h-64 overflow-y-auto">
+                <Card className="p-4 mb-6 bg-gray-900/90 backdrop-blur-sm border-2" style={{ borderColor: themeConfig.accentColor }}>
+                  <div className="flex flex-wrap justify-center gap-3 max-h-64 overflow-y-auto p-2">
                     {allNames.map((name, index) => (
                       <span 
                         key={`${name}-${index}`}
-                        className="px-4 py-2 rounded-full text-base font-medium animate-bounce-in"
+                        className="px-4 py-2 rounded-full text-base font-bold animate-bounce-in"
                         style={{
-                          backgroundColor: `${themeConfig.primaryColor}20`,
-                          color: themeConfig.primaryColor,
+                          backgroundColor: themeConfig.accentColor,
+                          color: "#1a1a2e",
                           animationDelay: `${index * 50}ms`
                         }}
                         data-testid={`preview-name-${index}`}
@@ -503,10 +506,13 @@ export default function Home() {
                 </Card>
                 
                 <div className="text-center mb-6">
-                  <span className="text-2xl font-display font-bold" style={{ color: themeConfig.primaryColor }}>
+                  <span 
+                    className="text-3xl font-display font-bold" 
+                    style={{ color: themeConfig.accentColor }}
+                  >
                     {allNames.length}名
                   </span>
-                  <span className="text-lg ml-2" style={{ color: "#555" }}>がエントリー！</span>
+                  <span className="text-xl ml-2 text-white/80">がエントリー！</span>
                 </div>
               </div>
 
@@ -514,10 +520,10 @@ export default function Home() {
                 <Button
                   size="lg"
                   onClick={startFromPreview}
-                  className="px-16 py-6 text-2xl font-display font-bold tracking-wider"
+                  className="px-16 py-6 text-2xl font-display font-bold tracking-wider text-gray-900"
                   style={{
-                    backgroundColor: themeConfig.primaryColor,
-                    boxShadow: `0 0 20px ${themeConfig.glowColor}, 0 0 40px ${themeConfig.glowColor}`,
+                    backgroundColor: themeConfig.accentColor,
+                    boxShadow: `0 0 30px ${themeConfig.glowColor}, 0 0 60px ${themeConfig.glowColor}`,
                     animation: "pulse-glow 2s ease-in-out infinite"
                   }}
                   data-testid="button-start-roulette"
@@ -530,7 +536,7 @@ export default function Home() {
                   size="lg"
                   variant="outline"
                   onClick={resetToSetup}
-                  className="px-8 py-4 text-lg font-display tracking-wider"
+                  className="px-8 py-4 text-lg font-display tracking-wider bg-white/10 border-white/50 text-white hover:bg-white/20"
                   data-testid="button-back-to-edit"
                 >
                   戻って編集
@@ -543,8 +549,7 @@ export default function Home() {
             <div className="flex flex-col items-center justify-center flex-1 w-full">
               <div className="text-center mb-4">
                 <span 
-                  className="text-xl tracking-widest font-medium"
-                  style={{ color: "#666" }}
+                  className="text-2xl tracking-widest font-bold text-white"
                 >
                   抽選中
                   <span className="inline-block animate-pulse">...</span>
@@ -552,14 +557,14 @@ export default function Home() {
               </div>
               
               <Card 
-                className="px-12 py-8 mb-8 bg-white/95 backdrop-blur-sm border-2"
-                style={{ borderColor: themeConfig.primaryColor }}
+                className="px-12 py-8 mb-8 bg-gray-900/95 backdrop-blur-sm border-4"
+                style={{ borderColor: themeConfig.accentColor }}
               >
                 <div 
                   className="text-5xl md:text-7xl lg:text-8xl font-display font-bold text-center"
                   style={{ 
-                    color: themeConfig.primaryColor,
-                    textShadow: `2px 2px 4px rgba(0,0,0,0.1)`,
+                    color: themeConfig.accentColor,
+                    textShadow: `0 0 30px ${themeConfig.glowColor}, 2px 2px 4px rgba(0,0,0,0.5)`,
                     minHeight: "120px",
                     display: "flex",
                     alignItems: "center",
@@ -573,20 +578,20 @@ export default function Home() {
 
               <div className="w-full max-w-3xl px-4">
                 <div className="text-center mb-3">
-                  <span className="text-sm font-medium" style={{ color: "#666" }}>
+                  <span className="text-sm font-bold text-white/80">
                     抽選対象者（{remainingNames.length}名）
                   </span>
                 </div>
-                <div className="flex flex-wrap justify-center gap-2 p-4 bg-white/60 rounded-lg border" style={{ borderColor: `${themeConfig.primaryColor}20` }}>
+                <div className="flex flex-wrap justify-center gap-2 p-4 bg-gray-900/80 rounded-lg border-2" style={{ borderColor: themeConfig.accentColor }}>
                   {remainingNames.map((name, index) => (
                     <span 
                       key={`${name}-${index}`}
-                      className={`px-3 py-1 rounded-full text-sm font-medium transition-all duration-200 ${
-                        name === currentName ? "scale-110 ring-2 ring-current" : "opacity-60"
+                      className={`px-3 py-1 rounded-full text-sm font-bold transition-all duration-200 ${
+                        name === currentName ? "scale-110 ring-2" : "opacity-70"
                       }`}
                       style={{
-                        backgroundColor: name === currentName ? themeConfig.primaryColor : `${themeConfig.primaryColor}20`,
-                        color: name === currentName ? "white" : themeConfig.primaryColor
+                        backgroundColor: name === currentName ? themeConfig.accentColor : "rgba(255,255,255,0.15)",
+                        color: name === currentName ? "#1a1a2e" : "white"
                       }}
                       data-testid={`spinning-name-${index}`}
                     >
@@ -603,32 +608,35 @@ export default function Home() {
               <div className="text-center">
                 <div className="animate-float mb-4">
                   <Trophy 
-                    className="w-16 h-16 md:w-20 md:h-20 mx-auto"
+                    className="w-20 h-20 md:w-24 md:h-24 mx-auto"
                     style={{ 
-                      color: themeConfig.primaryColor,
-                      filter: `drop-shadow(2px 2px 4px rgba(0,0,0,0.2))` 
+                      color: themeConfig.accentColor,
+                      filter: `drop-shadow(0 0 20px ${themeConfig.glowColor})` 
                     }}
                   />
                 </div>
                 
-                <div className="mb-2">
+                <div className="mb-3">
                   <span 
-                    className="text-xl md:text-2xl font-display tracking-widest font-bold"
-                    style={{ color: themeConfig.primaryColor }}
+                    className="text-2xl md:text-3xl font-display tracking-widest font-bold"
+                    style={{ 
+                      color: themeConfig.accentColor,
+                      textShadow: `0 0 15px ${themeConfig.glowColor}` 
+                    }}
                   >
                     当選者
                   </span>
                 </div>
                 
                 <Card 
-                  className="px-8 py-6 mb-4 bg-white/95 backdrop-blur-sm border-2"
-                  style={{ borderColor: themeConfig.primaryColor }}
+                  className="px-10 py-8 mb-4 bg-gray-900/95 backdrop-blur-sm border-4"
+                  style={{ borderColor: themeConfig.accentColor }}
                 >
                   <div 
-                    className="text-5xl md:text-7xl lg:text-8xl font-display font-bold tracking-wide"
+                    className="text-6xl md:text-8xl lg:text-9xl font-display font-bold tracking-wide"
                     style={{ 
-                      color: themeConfig.primaryColor,
-                      textShadow: `2px 2px 4px rgba(0,0,0,0.1)`,
+                      color: themeConfig.accentColor,
+                      textShadow: `0 0 40px ${themeConfig.glowColor}, 2px 2px 4px rgba(0,0,0,0.5)`,
                     }}
                     data-testid="text-winner-name"
                   >
@@ -637,21 +645,21 @@ export default function Home() {
                 </Card>
                 
                 <div 
-                  className="text-xl md:text-2xl font-medium tracking-wide"
-                  style={{ color: "#555" }}
+                  className="text-2xl md:text-3xl font-bold tracking-wide text-white"
                 >
                   おめでとうございます！
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 mt-12">
+              <div className="flex flex-col sm:flex-row gap-4 mt-10">
                 <Button
                   size="lg"
                   onClick={drawAgain}
                   disabled={isSpinning}
-                  className="px-8 py-4 text-lg font-display font-bold tracking-wider"
+                  className="px-8 py-4 text-lg font-display font-bold tracking-wider text-gray-900"
                   style={{
-                    backgroundColor: themeConfig.primaryColor
+                    backgroundColor: themeConfig.accentColor,
+                    boxShadow: `0 0 20px ${themeConfig.glowColor}`
                   }}
                   data-testid="button-draw-again"
                 >
@@ -662,7 +670,7 @@ export default function Home() {
                   size="lg"
                   variant="outline"
                   onClick={resetToSetup}
-                  className="px-8 py-4 text-lg font-display tracking-wider"
+                  className="px-8 py-4 text-lg font-display tracking-wider bg-white/10 border-white/50 text-white hover:bg-white/20"
                   data-testid="button-back-to-setup"
                 >
                   最初に戻る
@@ -671,15 +679,15 @@ export default function Home() {
 
               {winnerRecords.length > 1 && (
                 <div className="mt-6 text-center">
-                  <p className="text-sm mb-2" style={{ color: "#666" }}>これまでの当選者：</p>
+                  <p className="text-sm mb-2 text-white/70">これまでの当選者：</p>
                   <div className="flex flex-wrap justify-center gap-2">
                     {winnerRecords.slice(0, -1).map((record, i) => (
                       <span 
                         key={`${record.name}-${record.round}`}
-                        className="px-3 py-1 rounded-full text-sm font-medium"
+                        className="px-3 py-1 rounded-full text-sm font-bold"
                         style={{
-                          backgroundColor: `${themeConfig.primaryColor}25`,
-                          color: themeConfig.primaryColor
+                          backgroundColor: themeConfig.accentColor,
+                          color: "#1a1a2e"
                         }}
                         data-testid={`text-previous-winner-${i}`}
                       >
@@ -693,18 +701,18 @@ export default function Home() {
               {remainingNames.length > 0 && (
                 <div className="mt-6 w-full max-w-3xl mx-auto px-4">
                   <div className="text-center mb-3">
-                    <span className="text-sm font-medium" style={{ color: "#666" }}>
+                    <span className="text-sm font-bold text-white/70">
                       次回の抽選対象者（残り{remainingNames.length}名）
                     </span>
                   </div>
-                  <div className="flex flex-wrap justify-center gap-2 p-3 bg-white/60 rounded-lg border" style={{ borderColor: `${themeConfig.primaryColor}20` }}>
+                  <div className="flex flex-wrap justify-center gap-2 p-3 bg-gray-900/80 rounded-lg border-2" style={{ borderColor: themeConfig.accentColor }}>
                     {remainingNames.map((name, index) => (
                       <span 
                         key={`${name}-${index}`}
-                        className="px-3 py-1 rounded-full text-sm font-medium"
+                        className="px-3 py-1 rounded-full text-sm font-bold"
                         style={{
-                          backgroundColor: `${themeConfig.primaryColor}20`,
-                          color: themeConfig.primaryColor
+                          backgroundColor: "rgba(255,255,255,0.15)",
+                          color: "white"
                         }}
                         data-testid={`remaining-name-${index}`}
                       >
@@ -719,23 +727,23 @@ export default function Home() {
         </main>
 
         {(appState === "spinning" || appState === "winner") && (
-          <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t-2" style={{ borderColor: `${themeConfig.primaryColor}30` }}>
+          <div className="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-sm border-t-2" style={{ borderColor: themeConfig.accentColor }}>
             <div className="max-w-4xl mx-auto p-4">
               <button
                 onClick={() => setIsInputCollapsed(!isInputCollapsed)}
                 className="flex items-center justify-between w-full text-left gap-2"
                 data-testid="button-toggle-input"
               >
-                <div className="flex items-center gap-2" style={{ color: "#555" }}>
+                <div className="flex items-center gap-2 text-white">
                   <Users className="w-4 h-4" />
                   <span className="text-sm font-medium" data-testid="text-collapsed-count">
                     全{allNames.length}名 / 残り{remainingNames.length}名
                   </span>
                 </div>
                 {isInputCollapsed ? (
-                  <ChevronUp className="w-4 h-4" style={{ color: "#888" }} />
+                  <ChevronUp className="w-4 h-4 text-white/70" />
                 ) : (
-                  <ChevronDown className="w-4 h-4" style={{ color: "#888" }} />
+                  <ChevronDown className="w-4 h-4 text-white/70" />
                 )}
               </button>
               
@@ -745,8 +753,8 @@ export default function Home() {
                     value={inputText}
                     onChange={handleInputChange}
                     placeholder="参加者の名前を入力（1行に1名）"
-                    className="min-h-32 text-sm resize-none bg-white border-2"
-                    style={{ borderColor: `${themeConfig.primaryColor}30` }}
+                    className="min-h-32 text-sm resize-none bg-gray-800/90 text-white placeholder:text-white/50 border-2"
+                    style={{ borderColor: themeConfig.accentColor }}
                     data-testid="input-names-collapsed"
                   />
                 </div>
