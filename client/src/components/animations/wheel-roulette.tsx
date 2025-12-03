@@ -86,8 +86,18 @@ export function WheelRoulette({
   useEffect(() => {
     if (!isSpinning) return;
 
-    const targetAngle = -(winnerIndex * segmentAngle + segmentAngle / 2) + Math.PI / 2;
-    const totalRotation = targetAngle + Math.PI * 2 * (8 + Math.random() * 4);
+    // Calculate target angle so the winner segment center aligns with the top pointer
+    // Pointer is at top (12 o'clock = -π/2 in canvas coordinates)
+    // Segment i center is at (i * segmentAngle + segmentAngle/2)
+    // We need: rotation + segmentCenter = -π/2 (top position)
+    // So: rotation = -π/2 - segmentCenter
+    const segmentCenter = winnerIndex * segmentAngle + segmentAngle / 2;
+    const targetAngle = -Math.PI / 2 - segmentCenter;
+    
+    // Add multiple full rotations for dramatic effect, then land on target
+    const extraRotations = Math.PI * 2 * (8 + Math.random() * 4);
+    const totalRotation = targetAngle - extraRotations; // Subtract because we spin backwards (clockwise)
+    
     const startTime = Date.now();
     const duration = spinDuration * 1000;
 
@@ -103,6 +113,8 @@ export function WheelRoulette({
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate);
       } else {
+        // Ensure final rotation is exactly at target
+        setRotation(totalRotation);
         onSpinComplete();
       }
     };

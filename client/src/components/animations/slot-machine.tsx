@@ -53,7 +53,10 @@ export function SlotMachine({
       const itemHeight = 80;
       const totalHeight = entries.length * 3 * itemHeight;
       
-      const targetPosition = (entries.length + winnerIndex) * itemHeight;
+      // The center window shows the item at position/itemHeight + 1
+      // So to show winnerIndex in center: position/80 + 1 = entries.length + winnerIndex
+      // Therefore: position = (entries.length + winnerIndex - 1) * 80
+      const targetPosition = (entries.length + winnerIndex - 1) * itemHeight;
 
       const animate = () => {
         if (stopped) return;
