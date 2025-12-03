@@ -62,6 +62,7 @@ export default function Home() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const drumRollOscRef = useRef<OscillatorNode | null>(null);
   const drumRollLfoRef = useRef<OscillatorNode | null>(null);
+  const drumRollGainRef = useRef<GainNode | null>(null);
   const spinIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
 
@@ -121,9 +122,9 @@ export default function Home() {
       oscillator.type = 'triangle';
       oscillator.frequency.setValueAtTime(100, ctx.currentTime);
       
-      // LFO for tremolo effect (drum roll feel)
+      // LFO for tremolo effect (drum roll feel) - starts fast
       lfoOsc.type = 'sine';
-      lfoOsc.frequency.setValueAtTime(20, ctx.currentTime); // 20Hz tremolo
+      lfoOsc.frequency.setValueAtTime(22, ctx.currentTime); // Start at 22Hz (fast tremolo)
       lfoGain.gain.setValueAtTime(0.3, ctx.currentTime);
       
       // Connect LFO to gain
@@ -140,6 +141,7 @@ export default function Home() {
       
       drumRollOscRef.current = oscillator;
       drumRollLfoRef.current = lfoOsc;
+      drumRollGainRef.current = gainNode;
     } catch (e) {
       console.warn("Drum roll failed:", e);
     }
@@ -161,6 +163,34 @@ export default function Home() {
         // Already stopped
       }
       drumRollLfoRef.current = null;
+    }
+    drumRollGainRef.current = null;
+  }, []);
+
+  // Update drum roll speed to sync with roulette animation
+  const updateDrumRollSpeed = useCallback((spinIntervalMs: number) => {
+    if (!drumRollLfoRef.current || !audioContextRef.current) return;
+    
+    try {
+      const ctx = audioContextRef.current;
+      // Map spin interval to LFO frequency:
+      // Fast spin (50ms) -> 22Hz tremolo
+      // Slow spin (500ms) -> 4Hz tremolo
+      // Formula: higher interval = lower frequency
+      const minFreq = 4;
+      const maxFreq = 22;
+      const minInterval = 50;
+      const maxInterval = 500;
+      
+      // Clamp and invert the mapping
+      const clampedInterval = Math.max(minInterval, Math.min(maxInterval, spinIntervalMs));
+      const ratio = (clampedInterval - minInterval) / (maxInterval - minInterval);
+      const targetFreq = maxFreq - (ratio * (maxFreq - minFreq));
+      
+      // Use setTargetAtTime for smooth, click-free transition
+      drumRollLfoRef.current.frequency.setTargetAtTime(targetFreq, ctx.currentTime, 0.05);
+    } catch (e) {
+      // Ignore errors during audio updates
     }
   }, []);
 
@@ -284,6 +314,9 @@ export default function Home() {
     const winnerIndex = Math.floor(Math.random() * entriesToUse.length);
     const selectedEntry = entriesToUse[winnerIndex];
 
+    // Sync initial drum roll speed
+    updateDrumRollSpeed(speed);
+
     const spin = () => {
       if (!isMountedRef.current) {
         stopDrumRoll();
@@ -300,8 +333,12 @@ export default function Home() {
       
       if (iterations >= slowdownPhase1 && iterations < slowdownPhase2) {
         speed += 30;
+        // Sync drum roll with slower speed
+        updateDrumRollSpeed(speed);
       } else if (iterations >= slowdownPhase2) {
         speed += 80;
+        // Sync drum roll with even slower speed
+        updateDrumRollSpeed(speed);
       }
 
       if (iterations >= totalIterations) {
@@ -333,7 +370,7 @@ export default function Home() {
     };
 
     spin();
-  }, [remainingEntries, allEntries, isSpinning, rouletteSettings, startDrumRoll, stopDrumRoll, playFanfare, fireConfetti]);
+  }, [remainingEntries, allEntries, isSpinning, rouletteSettings, startDrumRoll, stopDrumRoll, playFanfare, fireConfetti, updateDrumRollSpeed]);
 
   const resetToSetup = useCallback(() => {
     if (spinIntervalRef.current) {
