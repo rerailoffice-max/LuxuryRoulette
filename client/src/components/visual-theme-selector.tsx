@@ -30,7 +30,7 @@ interface ThemeConfig {
 export const THEME_CONFIGS: Record<VisualTheme, ThemeConfig> = {
   default: {
     id: "default",
-    name: "Golden Classic",
+    name: "ゴールデン",
     icon: Sparkles,
     primaryColor: "#F59E0B",
     accentColor: "#FCD34D",
@@ -39,7 +39,7 @@ export const THEME_CONFIGS: Record<VisualTheme, ThemeConfig> = {
   },
   casino: {
     id: "casino",
-    name: "Casino Royale",
+    name: "カジノ",
     icon: Sparkles,
     primaryColor: "#DC2626",
     accentColor: "#FFD700",
@@ -48,7 +48,7 @@ export const THEME_CONFIGS: Record<VisualTheme, ThemeConfig> = {
   },
   festival: {
     id: "festival",
-    name: "Festival Party",
+    name: "パーティー",
     icon: PartyPopper,
     primaryColor: "#EC4899",
     accentColor: "#8B5CF6",
@@ -57,7 +57,7 @@ export const THEME_CONFIGS: Record<VisualTheme, ThemeConfig> = {
   },
   corporate: {
     id: "corporate",
-    name: "Corporate Pro",
+    name: "ビジネス",
     icon: Building2,
     primaryColor: "#3B82F6",
     accentColor: "#60A5FA",
@@ -78,7 +78,7 @@ export function VisualThemeSelector({ currentTheme, onThemeChange }: VisualTheme
       >
         <div className="flex items-center gap-2">
           <Palette className="w-5 h-5 text-primary" />
-          <span className="font-medium">Visual Theme</span>
+          <span className="font-medium">テーマ</span>
           <span className="text-sm text-muted-foreground">
             ({THEME_CONFIGS[currentTheme].name})
           </span>

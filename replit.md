@@ -1,35 +1,49 @@
-# Lucky Draw Roulette Application
+# 抽選ルーレット (Lucky Draw Roulette)
 
 ## Overview
 
-This is a glamorous lottery roulette application designed for events and parties. The application provides a theatrical, game-show-style experience for conducting random drawings with dramatic animations, sound effects, and confetti celebrations. Users can input a list of participant names, spin a virtual roulette to select winners, and manage the drawing process through intuitive controls. The interface emphasizes high-energy visual presentation with bold typography, generous spacing, and clear state transitions between setup, drawing, and winner celebration modes.
+これは余興やパーティー向けに設計された華やかな抽選ルーレットアプリケーションです。ドラマチックなアニメーション、効果音、紙吹雪の演出で、ゲームショーのような体験を提供します。参加者名のコピペ入力、自動敬称削除、参加者プレビュー画面、抽選アニメーションなどの機能を備えています。UIは完全に日本語でローカライズされています。
 
 ## Key Features
 
-### Winner History & Export
-- Complete history log of all winners with timestamps and round numbers
-- Export winners as CSV file for spreadsheet applications
-- Copy winners to clipboard as formatted text
-- Clear history functionality to start fresh
+### 日本語対応 (Japanese Localization)
+- 完全に日本語化されたUI（タイトル、ボタン、メッセージ、プレースホルダー）
+- 敬称自動削除機能（さん、様、君、ちゃん、殿、氏 などを自動で除去）
+- 日本語でのCSV出力・クリップボードコピー
 
-### Customizable Roulette Settings
-- Adjustable spin duration (1-10 seconds)
-- Three speed presets: Slow, Normal, Fast (affects animation timing)
-- Settings persist during session
+### 参加者プレビュー画面 (Preview Screen)
+- 抽選開始前に全参加者を一覧表示
+- 参加者のエントリー確認と期待感を高める演出
+- 「戻って編集」ボタンで名簿の修正が可能
 
-### Visual Themes
-- **Golden Classic** (Default): Amber/gold color scheme with warm glow effects
-- **Casino Royale**: Red and gold theme with casino-inspired aesthetics
-- **Festival Party**: Vibrant pink/purple rainbow theme for parties
-- **Corporate Pro**: Professional blue theme for business events
-- Each theme affects title colors, button styling, confetti colors, and glow effects
+### Application Flow
+1. **セットアップ画面**: 参加者名を入力（1行に1名）
+2. **プレビュー画面**: 参加者一覧を確認
+3. **抽選中**: ドラムロールとともに名前が回転
+4. **当選発表**: 紙吹雪とファンファーレで当選者を祝福
 
-### Custom Sound Effects
-- Upload custom drum roll sound (MP3/WAV/OGG, max 10MB)
-- Upload custom fanfare sound for winner reveal
-- Preview sounds before using
-- Reset to default sounds anytime
-- Supports audio formats: MP3, WAV, OGG
+### 当選履歴 (Winner History & Export)
+- 全当選者の履歴を回数と時刻付きで記録
+- CSVファイルとしてエクスポート可能
+- クリップボードにコピー機能
+- 履歴クリア機能
+
+### ルーレット設定 (Roulette Settings)
+- 回転時間の調整（2〜10秒）
+- 3段階のスピード設定（速い、普通、ゆっくり）
+- セッション中は設定を保持
+
+### テーマ (Visual Themes)
+- **ゴールデン** (デフォルト): 金色をベースにした温かみのあるテーマ
+- **カジノ**: 赤と金のカジノ風テーマ
+- **パーティー**: ピンクと紫のカラフルなテーマ
+- **ビジネス**: 青をベースにしたプロフェッショナルなテーマ
+
+### 効果音設定 (Sound Effects)
+- カスタムドラムロール音のアップロード（MP3/WAV/OGG、最大10MB）
+- カスタムファンファーレ音のアップロード
+- 試聴機能付き
+- デフォルト音への復元可能
 
 ## User Preferences
 
@@ -60,7 +74,7 @@ Preferred communication style: Simple, everyday language.
 **Design System Implementation**
 - Typography hierarchy using Google Fonts (Orbitron for display, Inter for body text)
 - Viewport-adaptive layouts with responsive spacing primitives
-- Three distinct application states: Setup → Spinning → Winner celebration
+- Four distinct application states: Setup → Preview → Spinning → Winner celebration
 - Theatrical presentation with full-screen immersive experiences during draws
 
 **Animation & Visual Effects**

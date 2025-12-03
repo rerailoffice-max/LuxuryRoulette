@@ -38,7 +38,7 @@ export function RouletteSettingsPanel({ settings, onSettingsChange }: RouletteSe
       >
         <div className="flex items-center gap-2">
           <Settings className="w-5 h-5 text-primary" />
-          <span className="font-medium">Roulette Settings</span>
+          <span className="font-medium">ルーレット設定</span>
         </div>
         {isExpanded ? (
           <ChevronUp className="w-5 h-5 text-muted-foreground" />
@@ -53,10 +53,10 @@ export function RouletteSettingsPanel({ settings, onSettingsChange }: RouletteSe
             <div className="flex items-center justify-between">
               <Label className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-muted-foreground" />
-                Spin Duration
+                回転時間
               </Label>
               <span className="text-sm text-muted-foreground" data-testid="text-spin-duration">
-                {settings.spinDuration}s
+                {settings.spinDuration}秒
               </span>
             </div>
             <Slider
@@ -71,8 +71,8 @@ export function RouletteSettingsPanel({ settings, onSettingsChange }: RouletteSe
               data-testid="slider-spin-duration"
             />
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Quick (2s)</span>
-              <span>Suspenseful (10s)</span>
+              <span>短め (2秒)</span>
+              <span>ドキドキ (10秒)</span>
             </div>
           </div>
 
@@ -80,10 +80,10 @@ export function RouletteSettingsPanel({ settings, onSettingsChange }: RouletteSe
             <div className="flex items-center justify-between">
               <Label className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-muted-foreground" />
-                Initial Speed
+                回転スピード
               </Label>
               <span className="text-sm text-muted-foreground" data-testid="text-spin-speed">
-                {settings.spinSpeed === 30 ? "Fast" : settings.spinSpeed === 50 ? "Medium" : "Slow"}
+                {settings.spinSpeed === 30 ? "速い" : settings.spinSpeed === 50 ? "普通" : "ゆっくり"}
               </span>
             </div>
             <Slider
@@ -98,8 +98,8 @@ export function RouletteSettingsPanel({ settings, onSettingsChange }: RouletteSe
               data-testid="slider-spin-speed"
             />
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Fast</span>
-              <span>Slow</span>
+              <span>速い</span>
+              <span>ゆっくり</span>
             </div>
           </div>
 
@@ -113,7 +113,7 @@ export function RouletteSettingsPanel({ settings, onSettingsChange }: RouletteSe
             className="w-full"
             data-testid="button-reset-settings"
           >
-            Reset to Default
+            初期設定に戻す
           </Button>
         </div>
       )}

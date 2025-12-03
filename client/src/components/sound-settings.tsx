@@ -48,12 +48,12 @@ export function SoundSettingsPanel({ settings, onSettingsChange }: SoundSettings
     if (!file) return;
 
     if (!file.type.startsWith("audio/")) {
-      alert("Please select an audio file (MP3, WAV, OGG, etc.)");
+      alert("音声ファイルを選択してください（MP3, WAV, OGGなど）");
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      alert("File size must be less than 10MB");
+      alert("ファイルサイズは10MB以下にしてください");
       return;
     }
 
@@ -147,11 +147,11 @@ export function SoundSettingsPanel({ settings, onSettingsChange }: SoundSettings
       >
         <div className="flex items-center gap-2">
           <Music className="w-5 h-5 text-primary" />
-          <span className="font-medium">Sound Effects</span>
+          <span className="font-medium">効果音</span>
           <span className="text-sm text-muted-foreground">
             ({settings.drumRollName || settings.fanfareName 
-              ? "Custom" 
-              : "Default"})
+              ? "カスタム" 
+              : "デフォルト"})
           </span>
         </div>
         {isExpanded ? (
@@ -165,7 +165,7 @@ export function SoundSettingsPanel({ settings, onSettingsChange }: SoundSettings
         <div className="px-4 pb-4 space-y-4">
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <label className="text-sm font-medium">Drum Roll (during spin)</label>
+              <label className="text-sm font-medium">ドラムロール（回転中）</label>
               <div className="flex items-center gap-1">
                 <Button
                   size="icon"
@@ -173,7 +173,7 @@ export function SoundSettingsPanel({ settings, onSettingsChange }: SoundSettings
                   onClick={() => previewSound("drumRoll")}
                   disabled={isPlayingDrumRoll}
                   data-testid="button-preview-drumroll"
-                  aria-label="Preview drum roll"
+                  aria-label="ドラムロールを試聴"
                 >
                   {isPlayingDrumRoll ? (
                     <Volume2 className="w-4 h-4 animate-pulse" />
@@ -187,7 +187,7 @@ export function SoundSettingsPanel({ settings, onSettingsChange }: SoundSettings
                     variant="ghost"
                     onClick={() => resetToDefault("drumRoll")}
                     data-testid="button-reset-drumroll"
-                    aria-label="Reset to default drum roll"
+                    aria-label="デフォルトに戻す"
                   >
                     <RotateCcw className="w-4 h-4" />
                   </Button>
@@ -212,17 +212,17 @@ export function SoundSettingsPanel({ settings, onSettingsChange }: SoundSettings
                 data-testid="button-upload-drumroll"
               >
                 <Upload className="w-4 h-4 mr-2" />
-                {settings.drumRollName || "Upload custom sound"}
+                {settings.drumRollName || "カスタム音声をアップロード"}
               </Button>
             </div>
             {!settings.drumRollName && (
-              <p className="text-xs text-muted-foreground">Using default drum roll</p>
+              <p className="text-xs text-muted-foreground">デフォルトのドラムロールを使用中</p>
             )}
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <label className="text-sm font-medium">Fanfare (winner reveal)</label>
+              <label className="text-sm font-medium">ファンファーレ（当選時）</label>
               <div className="flex items-center gap-1">
                 <Button
                   size="icon"
@@ -230,7 +230,7 @@ export function SoundSettingsPanel({ settings, onSettingsChange }: SoundSettings
                   onClick={() => previewSound("fanfare")}
                   disabled={isPlayingFanfare}
                   data-testid="button-preview-fanfare"
-                  aria-label="Preview fanfare"
+                  aria-label="ファンファーレを試聴"
                 >
                   {isPlayingFanfare ? (
                     <Volume2 className="w-4 h-4 animate-pulse" />
@@ -244,7 +244,7 @@ export function SoundSettingsPanel({ settings, onSettingsChange }: SoundSettings
                     variant="ghost"
                     onClick={() => resetToDefault("fanfare")}
                     data-testid="button-reset-fanfare"
-                    aria-label="Reset to default fanfare"
+                    aria-label="デフォルトに戻す"
                   >
                     <RotateCcw className="w-4 h-4" />
                   </Button>
@@ -269,17 +269,17 @@ export function SoundSettingsPanel({ settings, onSettingsChange }: SoundSettings
                 data-testid="button-upload-fanfare"
               >
                 <Upload className="w-4 h-4 mr-2" />
-                {settings.fanfareName || "Upload custom sound"}
+                {settings.fanfareName || "カスタム音声をアップロード"}
               </Button>
             </div>
             {!settings.fanfareName && (
-              <p className="text-xs text-muted-foreground">Using default fanfare</p>
+              <p className="text-xs text-muted-foreground">デフォルトのファンファーレを使用中</p>
             )}
           </div>
 
           <div className="pt-2 border-t border-border">
             <p className="text-xs text-muted-foreground">
-              Supported formats: MP3, WAV, OGG (max 10MB)
+              対応形式: MP3, WAV, OGG（最大10MB）
             </p>
           </div>
         </div>

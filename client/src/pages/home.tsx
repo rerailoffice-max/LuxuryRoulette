@@ -20,7 +20,19 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 
-type AppState = "setup" | "spinning" | "winner";
+type AppState = "setup" | "preview" | "spinning" | "winner";
+
+const removeHonorifics = (name: string): string => {
+  return name
+    .replace(/さん$/g, "")
+    .replace(/様$/g, "")
+    .replace(/君$/g, "")
+    .replace(/ちゃん$/g, "")
+    .replace(/殿$/g, "")
+    .replace(/氏$/g, "")
+    .replace(/先生$/g, "")
+    .trim();
+};
 
 export default function Home() {
   const [allNames, setAllNames] = useState<string[]>([]);
@@ -96,6 +108,8 @@ export default function Home() {
     const parsed = text
       .split("\n")
       .map((name) => name.trim())
+      .filter((name) => name.length > 0)
+      .map(removeHonorifics)
       .filter((name) => name.length > 0);
     setAllNames(parsed);
     setRemainingNames(parsed);
@@ -244,6 +258,16 @@ export default function Home() {
     stopSound(fanfareRef.current);
   }, [stopSound]);
 
+  const goToPreview = useCallback(() => {
+    if (allNames.length < 2) return;
+    setAppState("preview");
+    setIsInputCollapsed(true);
+  }, [allNames.length]);
+
+  const startFromPreview = useCallback(() => {
+    startRoulette();
+  }, [startRoulette]);
+
   const drawAgain = useCallback(() => {
     if (remainingNames.length < 1) {
       setRemainingNames(allNames);
@@ -309,10 +333,10 @@ export default function Home() {
               textShadow: `0 0 30px ${themeConfig.glowColor}` 
             }}
           >
-            LUCKY DRAW
+            抽選ルーレット
           </h1>
           <p className="text-muted-foreground mt-2 text-lg tracking-wide">
-            Glamorous Lottery Roulette
+            ワクワク抽選タイム！
           </p>
         </header>
 
@@ -324,7 +348,7 @@ export default function Home() {
                   <div className="flex items-center gap-2">
                     <Users className="w-5 h-5 text-primary" />
                     <span className="text-lg font-medium" data-testid="text-participant-count">
-                      {allNames.length > 0 ? `${allNames.length} participants` : "Enter participants"}
+                      {allNames.length > 0 ? `${allNames.length}名の参加者` : "参加者を入力してください"}
                     </span>
                   </div>
                   {inputText && (
@@ -335,7 +359,7 @@ export default function Home() {
                       data-testid="button-clear-names"
                     >
                       <RotateCcw className="w-4 h-4 mr-2" />
-                      Clear
+                      クリア
                     </Button>
                   )}
                 </div>
@@ -343,7 +367,7 @@ export default function Home() {
                 <Textarea
                   value={inputText}
                   onChange={handleInputChange}
-                  placeholder="Paste participant names here (one name per line)&#10;&#10;Example:&#10;Taro Yamada&#10;Hanako Sato&#10;Ichiro Tanaka"
+                  placeholder="参加者の名前を入力してください（1行に1名）&#10;&#10;例：&#10;山田太郎さん&#10;佐藤花子様&#10;田中一郎&#10;&#10;※敬称（さん・様など）は自動で削除されます"
                   className="min-h-64 md:min-h-80 text-base resize-none bg-background/50 border-muted focus:border-primary transition-colors"
                   data-testid="input-names"
                 />
@@ -353,7 +377,7 @@ export default function Home() {
                 <Button
                   size="lg"
                   disabled={allNames.length < 2}
-                  onClick={startRoulette}
+                  onClick={goToPreview}
                   className="px-16 py-6 text-2xl font-display font-bold tracking-wider"
                   style={{
                     backgroundColor: allNames.length >= 2 ? themeConfig.primaryColor : undefined,
@@ -367,14 +391,14 @@ export default function Home() {
                   data-testid="button-start"
                 >
                   <Sparkles className="w-6 h-6 mr-3" />
-                  START
+                  確認へ進む
                   <Sparkles className="w-6 h-6 ml-3" />
                 </Button>
               </div>
 
               {allNames.length > 0 && allNames.length < 2 && (
                 <p className="text-center text-destructive text-sm" data-testid="text-error-min-participants">
-                  Please enter at least 2 participants to start the draw
+                  抽選を開始するには2名以上の参加者が必要です
                 </p>
               )}
 
@@ -400,11 +424,80 @@ export default function Home() {
             </div>
           )}
 
+          {appState === "preview" && (
+            <div className="flex flex-col items-center justify-center flex-1 w-full">
+              <div className="text-center mb-8">
+                <span 
+                  className="text-2xl md:text-3xl font-display tracking-widest"
+                  style={{ color: themeConfig.primaryColor }}
+                >
+                  今回の参加者
+                </span>
+                <p className="text-muted-foreground mt-2">
+                  この中から当選者が選ばれます！
+                </p>
+              </div>
+              
+              <div className="w-full max-w-4xl px-4">
+                <div className="flex flex-wrap justify-center gap-3 mb-8 max-h-64 overflow-y-auto p-4 bg-card/50 rounded-lg border border-primary/20">
+                  {allNames.map((name, index) => (
+                    <span 
+                      key={`${name}-${index}`}
+                      className="px-4 py-2 rounded-full text-base font-medium animate-bounce-in"
+                      style={{
+                        backgroundColor: `${themeConfig.primaryColor}20`,
+                        color: themeConfig.primaryColor,
+                        animationDelay: `${index * 50}ms`
+                      }}
+                      data-testid={`preview-name-${index}`}
+                    >
+                      {name}
+                    </span>
+                  ))}
+                </div>
+                
+                <div className="text-center mb-6">
+                  <span className="text-2xl font-display" style={{ color: themeConfig.primaryColor }}>
+                    {allNames.length}名
+                  </span>
+                  <span className="text-muted-foreground text-lg ml-2">がエントリー！</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button
+                  size="lg"
+                  onClick={startFromPreview}
+                  className="px-16 py-6 text-2xl font-display font-bold tracking-wider"
+                  style={{
+                    backgroundColor: themeConfig.primaryColor,
+                    boxShadow: `0 0 20px ${themeConfig.glowColor}, 0 0 40px ${themeConfig.glowColor}`,
+                    animation: "pulse-glow 2s ease-in-out infinite"
+                  }}
+                  data-testid="button-start-roulette"
+                >
+                  <Sparkles className="w-6 h-6 mr-3" />
+                  抽選スタート！
+                  <Sparkles className="w-6 h-6 ml-3" />
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={resetToSetup}
+                  className="px-8 py-4 text-lg font-display tracking-wider"
+                  data-testid="button-back-to-edit"
+                >
+                  戻って編集
+                </Button>
+              </div>
+            </div>
+          )}
+
           {appState === "spinning" && (
             <div className="flex flex-col items-center justify-center flex-1 w-full">
               <div className="text-center mb-8">
-                <span className="text-muted-foreground text-xl tracking-widest uppercase">
-                  Drawing
+                <span className="text-muted-foreground text-xl tracking-widest">
+                  抽選中
                   <span className="inline-block animate-pulse">...</span>
                 </span>
               </div>
@@ -426,7 +519,7 @@ export default function Home() {
 
               <div className="mt-12 flex items-center gap-2 text-muted-foreground">
                 <Users className="w-5 h-5" />
-                <span data-testid="text-remaining-count">{remainingNames.length} remaining</span>
+                <span data-testid="text-remaining-count">残り {remainingNames.length}名</span>
               </div>
             </div>
           )}
@@ -446,19 +539,19 @@ export default function Home() {
                 
                 <div className="mb-4">
                   <span 
-                    className="text-2xl md:text-3xl font-display tracking-widest uppercase"
+                    className="text-2xl md:text-3xl font-display tracking-widest"
                     style={{ 
                       color: themeConfig.primaryColor,
                       opacity: 0.8,
                       textShadow: `0 0 20px ${themeConfig.glowColor.replace('0.6', '0.4')}` 
                     }}
                   >
-                    Winner
+                    当選者
                   </span>
                 </div>
                 
                 <div 
-                  className="text-6xl md:text-8xl lg:text-9xl font-display font-bold px-4 py-4 uppercase tracking-wide"
+                  className="text-6xl md:text-8xl lg:text-9xl font-display font-bold px-4 py-4 tracking-wide"
                   style={{ 
                     color: themeConfig.primaryColor,
                     textShadow: `0 0 60px ${themeConfig.glowColor.replace('0.6', '0.8')}, 0 0 120px ${themeConfig.glowColor.replace('0.6', '0.4')}`,
@@ -471,13 +564,13 @@ export default function Home() {
                 <div 
                   className="mt-6 text-xl md:text-2xl text-muted-foreground font-medium tracking-wide"
                 >
-                  Congratulations!
+                  おめでとうございます！
                 </div>
 
                 {remainingNames.length > 0 && (
                   <div className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
                     <UserMinus className="w-4 h-4" />
-                    <span data-testid="text-remaining-after-win">{remainingNames.length} participants remaining</span>
+                    <span data-testid="text-remaining-after-win">残り {remainingNames.length}名</span>
                   </div>
                 )}
               </div>
@@ -494,7 +587,7 @@ export default function Home() {
                   data-testid="button-draw-again"
                 >
                   <RotateCcw className="w-5 h-5 mr-2" />
-                  Draw Again
+                  もう一回抽選
                 </Button>
                 <Button
                   size="lg"
@@ -503,13 +596,13 @@ export default function Home() {
                   className="px-8 py-4 text-lg font-display tracking-wider"
                   data-testid="button-back-to-setup"
                 >
-                  Back to Setup
+                  最初に戻る
                 </Button>
               </div>
 
               {winnerRecords.length > 1 && (
                 <div className="mt-8 text-center">
-                  <p className="text-sm text-muted-foreground mb-2">Previous winners:</p>
+                  <p className="text-sm text-muted-foreground mb-2">これまでの当選者：</p>
                   <div className="flex flex-wrap justify-center gap-2">
                     {winnerRecords.slice(0, -1).map((record, i) => (
                       <span 
@@ -542,7 +635,7 @@ export default function Home() {
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Users className="w-4 h-4" />
                   <span className="text-sm" data-testid="text-collapsed-count">
-                    {allNames.length} total / {remainingNames.length} remaining
+                    全{allNames.length}名 / 残り{remainingNames.length}名
                   </span>
                 </div>
                 {isInputCollapsed ? (
@@ -557,7 +650,7 @@ export default function Home() {
                   <Textarea
                     value={inputText}
                     onChange={handleInputChange}
-                    placeholder="Paste participant names here (one name per line)"
+                    placeholder="参加者の名前を入力（1行に1名）"
                     className="min-h-32 text-sm resize-none bg-background/50 border-muted"
                     data-testid="input-names-collapsed"
                   />

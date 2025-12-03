@@ -28,7 +28,7 @@ export function WinnerHistory({ winners, onClear }: WinnerHistoryProps) {
   const [copied, setCopied] = useState(false);
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { 
+    return date.toLocaleTimeString('ja-JP', { 
       hour: '2-digit', 
       minute: '2-digit',
       second: '2-digit'
@@ -36,7 +36,7 @@ export function WinnerHistory({ winners, onClear }: WinnerHistoryProps) {
   };
 
   const exportToCSV = () => {
-    const headers = "Round,Winner,Time\n";
+    const headers = "回,当選者,時刻\n";
     const rows = winners.map(w => 
       `${w.round},"${w.name}",${formatTime(w.timestamp)}`
     ).join("\n");
@@ -46,7 +46,7 @@ export function WinnerHistory({ winners, onClear }: WinnerHistoryProps) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `lucky-draw-winners-${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `抽選結果-${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -55,7 +55,7 @@ export function WinnerHistory({ winners, onClear }: WinnerHistoryProps) {
 
   const copyToClipboard = async () => {
     const text = winners.map(w => 
-      `Round ${w.round}: ${w.name} (${formatTime(w.timestamp)})`
+      `第${w.round}回: ${w.name} (${formatTime(w.timestamp)})`
     ).join("\n");
     
     try {
@@ -81,7 +81,7 @@ export function WinnerHistory({ winners, onClear }: WinnerHistoryProps) {
         <div className="flex items-center gap-2">
           <Trophy className="w-5 h-5 text-primary" />
           <span className="font-medium">
-            Winner History ({winners.length})
+            当選履歴 ({winners.length}件)
           </span>
         </div>
         {isExpanded ? (
@@ -104,7 +104,7 @@ export function WinnerHistory({ winners, onClear }: WinnerHistoryProps) {
               data-testid="button-export-csv"
             >
               <Download className="w-4 h-4 mr-2" />
-              Export CSV
+              CSV出力
             </Button>
             <Button
               size="sm"
@@ -120,7 +120,7 @@ export function WinnerHistory({ winners, onClear }: WinnerHistoryProps) {
               ) : (
                 <Copy className="w-4 h-4 mr-2" />
               )}
-              {copied ? "Copied!" : "Copy"}
+              {copied ? "コピーしました！" : "コピー"}
             </Button>
             <Button
               size="sm"
@@ -133,7 +133,7 @@ export function WinnerHistory({ winners, onClear }: WinnerHistoryProps) {
               data-testid="button-clear-history"
             >
               <X className="w-4 h-4 mr-2" />
-              Clear
+              クリア
             </Button>
           </div>
 
@@ -146,7 +146,7 @@ export function WinnerHistory({ winners, onClear }: WinnerHistoryProps) {
               >
                 <div className="flex items-center gap-3">
                   <span className="text-xs font-medium text-primary bg-primary/20 px-2 py-1 rounded-full">
-                    #{winner.round}
+                    第{winner.round}回
                   </span>
                   <span className="font-medium text-foreground">
                     {winner.name}
