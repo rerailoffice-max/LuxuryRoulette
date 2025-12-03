@@ -99,8 +99,6 @@ export default function Home() {
       .filter((name) => name.length > 0);
     setAllNames(parsed);
     setRemainingNames(parsed);
-    setWinnerRecords([]);
-    setRoundNumber(1);
     return parsed;
   }, []);
 
@@ -160,7 +158,7 @@ export default function Home() {
   }, [themeConfig.confettiColors]);
 
   const startRoulette = useCallback(() => {
-    if (remainingNames.length < 1 || isSpinning) return;
+    if (allNames.length < 2 || isSpinning) return;
     
     initializeAudio();
     setIsSpinning(true);
@@ -169,6 +167,11 @@ export default function Home() {
     playSound(drumRollRef.current);
 
     const namesToUse = remainingNames.length > 1 ? remainingNames : allNames;
+    if (namesToUse.length === 0) {
+      setIsSpinning(false);
+      setAppState("setup");
+      return;
+    }
     let currentIndex = 0;
     let speed = rouletteSettings.spinSpeed;
     let iterations = 0;
@@ -237,12 +240,9 @@ export default function Home() {
     setCurrentName("");
     setIsInputCollapsed(false);
     setIsSpinning(false);
-    setRemainingNames(allNames);
-    setWinnerRecords([]);
-    setRoundNumber(1);
     stopSound(drumRollRef.current);
     stopSound(fanfareRef.current);
-  }, [allNames, stopSound]);
+  }, [stopSound]);
 
   const drawAgain = useCallback(() => {
     if (remainingNames.length < 1) {
@@ -354,13 +354,15 @@ export default function Home() {
                   size="lg"
                   disabled={allNames.length < 2}
                   onClick={startRoulette}
-                  className="px-16 py-6 text-2xl font-display font-bold tracking-wider disabled:opacity-50"
+                  className="px-16 py-6 text-2xl font-display font-bold tracking-wider"
                   style={{
-                    backgroundColor: themeConfig.primaryColor,
+                    backgroundColor: allNames.length >= 2 ? themeConfig.primaryColor : undefined,
                     boxShadow: allNames.length >= 2 
                       ? `0 0 20px ${themeConfig.glowColor}, 0 0 40px ${themeConfig.glowColor}` 
                       : undefined,
-                    animation: allNames.length >= 2 ? "pulse-glow 2s ease-in-out infinite" : undefined
+                    animation: allNames.length >= 2 ? "pulse-glow 2s ease-in-out infinite" : undefined,
+                    opacity: allNames.length < 2 ? 0.5 : 1,
+                    cursor: allNames.length < 2 ? "not-allowed" : "pointer"
                   }}
                   data-testid="button-start"
                 >

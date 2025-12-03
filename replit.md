@@ -4,6 +4,33 @@
 
 This is a glamorous lottery roulette application designed for events and parties. The application provides a theatrical, game-show-style experience for conducting random drawings with dramatic animations, sound effects, and confetti celebrations. Users can input a list of participant names, spin a virtual roulette to select winners, and manage the drawing process through intuitive controls. The interface emphasizes high-energy visual presentation with bold typography, generous spacing, and clear state transitions between setup, drawing, and winner celebration modes.
 
+## Key Features
+
+### Winner History & Export
+- Complete history log of all winners with timestamps and round numbers
+- Export winners as CSV file for spreadsheet applications
+- Copy winners to clipboard as formatted text
+- Clear history functionality to start fresh
+
+### Customizable Roulette Settings
+- Adjustable spin duration (1-10 seconds)
+- Three speed presets: Slow, Normal, Fast (affects animation timing)
+- Settings persist during session
+
+### Visual Themes
+- **Golden Classic** (Default): Amber/gold color scheme with warm glow effects
+- **Casino Royale**: Red and gold theme with casino-inspired aesthetics
+- **Festival Party**: Vibrant pink/purple rainbow theme for parties
+- **Corporate Pro**: Professional blue theme for business events
+- Each theme affects title colors, button styling, confetti colors, and glow effects
+
+### Custom Sound Effects
+- Upload custom drum roll sound (MP3/WAV/OGG, max 10MB)
+- Upload custom fanfare sound for winner reveal
+- Preview sounds before using
+- Reset to default sounds anytime
+- Supports audio formats: MP3, WAV, OGG
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
