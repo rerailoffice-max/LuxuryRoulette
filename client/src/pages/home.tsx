@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { WinnerHistory, type WinnerRecord } from "@/components/winner-history";
 import { RouletteSettingsPanel, DEFAULT_ROULETTE_SETTINGS, type RouletteSettings } from "@/components/roulette-settings";
 import { VisualThemeSelector, THEME_CONFIGS, type VisualTheme } from "@/components/visual-theme-selector";
+import { SoundSettingsPanel, DEFAULT_SOUND_SETTINGS, type SoundSettings } from "@/components/sound-settings";
 import { 
   Volume2, 
   VolumeX, 
@@ -20,9 +21,6 @@ import {
 import confetti from "canvas-confetti";
 
 type AppState = "setup" | "spinning" | "winner";
-
-const DRUM_ROLL_URL = "https://www.soundjay.com/misc/sounds/drum-roll-01.mp3";
-const FANFARE_URL = "https://www.soundjay.com/misc/sounds/fanfare-1.mp3";
 
 export default function Home() {
   const [allNames, setAllNames] = useState<string[]>([]);
@@ -39,6 +37,7 @@ export default function Home() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [rouletteSettings, setRouletteSettings] = useState<RouletteSettings>(DEFAULT_ROULETTE_SETTINGS);
   const [visualTheme, setVisualTheme] = useState<VisualTheme>("default");
+  const [soundSettings, setSoundSettings] = useState<SoundSettings>(DEFAULT_SOUND_SETTINGS);
 
   const themeConfig = useMemo(() => THEME_CONFIGS[visualTheme], [visualTheme]);
   
@@ -67,19 +66,31 @@ export default function Home() {
   }, []);
 
   const initializeAudio = useCallback(() => {
-    if (!audioInitialized) {
-      try {
-        drumRollRef.current = new Audio(DRUM_ROLL_URL);
-        fanfareRef.current = new Audio(FANFARE_URL);
-        drumRollRef.current.loop = true;
-        drumRollRef.current.volume = 0.7;
-        fanfareRef.current.volume = 0.8;
-        setAudioInitialized(true);
-      } catch (e) {
-        console.warn("Audio initialization failed:", e);
-      }
+    try {
+      drumRollRef.current = new Audio(soundSettings.drumRollUrl);
+      fanfareRef.current = new Audio(soundSettings.fanfareUrl);
+      drumRollRef.current.loop = true;
+      drumRollRef.current.volume = 0.7;
+      fanfareRef.current.volume = 0.8;
+      setAudioInitialized(true);
+    } catch (e) {
+      console.warn("Audio initialization failed:", e);
     }
-  }, [audioInitialized]);
+  }, [soundSettings.drumRollUrl, soundSettings.fanfareUrl]);
+
+  useEffect(() => {
+    if (audioInitialized) {
+      if (drumRollRef.current) {
+        drumRollRef.current.pause();
+        drumRollRef.current = null;
+      }
+      if (fanfareRef.current) {
+        fanfareRef.current.pause();
+        fanfareRef.current = null;
+      }
+      initializeAudio();
+    }
+  }, [soundSettings.drumRollUrl, soundSettings.fanfareUrl]);
 
   const parseNames = useCallback((text: string) => {
     const parsed = text
@@ -373,6 +384,11 @@ export default function Home() {
               <RouletteSettingsPanel
                 settings={rouletteSettings}
                 onSettingsChange={setRouletteSettings}
+              />
+
+              <SoundSettingsPanel
+                settings={soundSettings}
+                onSettingsChange={setSoundSettings}
               />
 
               <WinnerHistory 
