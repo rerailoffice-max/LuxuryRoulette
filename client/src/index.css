@@ -1,6 +1,28 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
+
+/* 既存 v3 の ring とタッチ端末上の hover を維持する。 */
+@theme inline {
+  --default-ring-width: 3px;
+  --default-ring-color: rgb(59 130 246 / 0.5);
+}
+@custom-variant hover (&:hover);
+
+@layer base {
+  /* v4 Preflight で変わった既定値を、既存ユーティリティより低い層で補正する。 */
+  *, ::before, ::after, ::backdrop, ::file-selector-button {
+    border-color: #e5e7eb;
+    /* v3 と同じく、親の rotate を子の translate に継承させない。 */
+    --tw-rotate: 0deg;
+  }
+  input::placeholder, textarea::placeholder {
+    opacity: 1;
+    color: #9ca3af;
+  }
+  button, [role="button"] { cursor: pointer; }
+  :disabled { cursor: default; }
+}
+
 
 /* LIGHT MODE */
 :root {
